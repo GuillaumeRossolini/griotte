@@ -4,7 +4,7 @@ $db = new PDO('sqlite:./readings.sq3');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 
-$node_id = 3385449031;
+$griotte_nb = 3385449031;
 $created_at = 1726309664;
 
 
