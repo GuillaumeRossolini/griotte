@@ -79,7 +79,7 @@ if(false === $filemtime) {
   die('ko');
 }
 
-if(time() > ($filemtime + 60*1)) {
+if(time() >= ($filemtime + 60*1)) {
   //error_log('Readings too old for this node: '.json_encode($dbg));
   goto insert;
 }
