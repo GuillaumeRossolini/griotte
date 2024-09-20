@@ -3,7 +3,7 @@
 date_default_timezone_set('Europe/Paris');
 header('Content-Type: text/html; charset=utf-8');
 
-$db = new PDO('sqlite:./readings.sq3');
+$db = new PDO('sqlite:../readings.sq3');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 /*
