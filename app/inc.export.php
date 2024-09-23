@@ -38,14 +38,14 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $sql = <<<SQL
 SELECT node
   , CASE node
-    WHEN 694510667 THEN 'friends'
-    WHEN 3764971370 THEN 'attic'
-    WHEN 3764978189 THEN 'library'
-    WHEN 1547794758 THEN 'bedroom'
-    WHEN 3385449031 THEN 'kitchen'
-    WHEN 3385445268 THEN 'office'
+    WHEN 3385449031 THEN 'floor 0 @ kitchen'
+    WHEN 1547794758 THEN 'floor 1 @ bedroom'
+    WHEN 694510667 THEN 'floor 1 @ guest room'
+    WHEN 3764978189 THEN 'floor 1 @ library'
+    WHEN 3764971370 THEN 'floor 2 @ attic'
+    WHEN 3385445268 THEN 'floor 2 @ office'
     ELSE node
-  END AS node_idx
+  END AS node_lbl
   , COUNT(1) AS nb
   , MIN(created_at) AS earliest
   , MAX(created_at) AS latest
@@ -59,7 +59,7 @@ FROM sensor_reading
 WHERE true
   AND created_at BETWEEN ? AND ?
 GROUP BY node
-ORDER BY node
+ORDER BY node_lbl
 SQL;
 
 $stmt = $db->prepare($sql);
@@ -71,8 +71,8 @@ $stmt->execute([
 $overview = [];
 $labels = [];
 foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $res) {
-  $overview[$res['node_idx']] = $res;
-  $labels[] = sprintf('%s (%d)', $res['node_idx'], $res['nb']);
+  $overview[$res['node_lbl']] = $res;
+  $labels[] = sprintf('%s (%d)', $res['node_lbl'], $res['nb']);
 }
 
 if(!$overview) {
@@ -216,10 +216,9 @@ $stmt = $db->prepare($sql);
 $rooms = [];
 $labels = [];
 $titles = [];
-foreach(array_keys($overview) as $node_key) {
-  $node_id = $overview[$node_key]['node'];
+foreach($overview as $node_key => $node_average) {
   $stmt->execute([
-    $node_id,
+    $node_average['node'],
     $start_utc->format('Y-m-d H:i:s'),
     $end_utc->format('Y-m-d H:i:s'),
   ]);
@@ -252,7 +251,7 @@ foreach(array_keys($overview) as $node_key) {
 }
 ?>
 
-<?php foreach(array_keys($overview) as $node_key): ?>
+<?php foreach($overview as $node_key => $node_average): ?>
   <?php $zindex = 0; ?>
   <canvas id="<?php echo htmlspecialchars(sprintf('room-%s', $node_key), ENT_QUOTES) ?>"></canvas>
 
