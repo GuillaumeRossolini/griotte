@@ -85,20 +85,27 @@ $datasets = [
   'voc'  => ['label' => 'VOC',  'color' => '#4bc0c0'],
 ];
 
-$earliest = new DateTimeImmutable(min(array_column($overview, 'earliest')), $tz_utc);
-$latest = new DateTimeImmutable(max(array_column($overview, 'latest')), $tz_utc);
+$earliest_raw = min(array_column($overview, 'earliest'));
+$latest_raw = max(array_column($overview, 'latest'));
+
+$earliest = (new DateTimeImmutable($earliest_raw, $tz_utc))
+  ->setTimezone($tz_local);
+
+$latest = (new DateTimeImmutable($latest_raw, $tz_utc))
+  ->setTimezone($tz_local);
 
 $title = sprintf(
-  'Overview between %s and %s',
-  $earliest->setTimezone($tz_local)->format('Y-m-d H:i:s'),
-  $latest->setTimezone($tz_local)->format('Y-m-d H:i:s')
+  'Overview on %s between %s and %s',
+  $earliest->format('Y-m-d'),
+  $earliest->format('H:i:s'),
+  $latest->format('H:i:s')
 );
 
 $zindex = 0;
 ?>
 
 <form method="get">
-  <input type="date" name="d" value="<?=$date_filter?>"/>
+  <input type="date" name="d" value="<?php echo htmlspecialchars($date_filter, ENT_QUOTES) ?>"/>
 </form>
 
 <script>
@@ -114,27 +121,27 @@ $zindex = 0;
 <script>
   new Chart(document.getElementById('overview'), {
     data: {
-      labels: <?php echo json_encode($labels); ?>,
+      labels: <?php echo json_encode($labels) ?>,
       datasets: [
         <?php foreach($datasets as $field => $config): ?>
         {
           type: 'bar',
-          label: <?=json_encode($config['label'])?>,
-          data: <?php echo json_encode(array_map('intval', array_column($overview, 'avg_'.$field))); ?>,
+          label: <?php echo json_encode($config['label']) ?>,
+          data: <?php echo json_encode(array_map('intval', array_column($overview, 'avg_'.$field))) ?>,
           borderWidth: 1,
           weight: 1,
-          order: <?=($zindex--)?>,
+          order: <?php echo json_encode($zindex--) ?>,
           yAxisID: 'right',
-          borderColor: '<?=$config['color']?>',
-          backgroundColor: '<?=$config['color']?>'
+          borderColor: <?php echo json_encode($config['color']) ?>,
+          backgroundColor: <?php echo json_encode($config['color']) ?>
         },
         <?php endforeach; ?>
         {
           type: 'line',
           label: 'Barometric (hPA)',
-          data: <?php echo json_encode(array_map('intval', array_column($overview, 'avg_hpa'))); ?>,
+          data: <?php echo json_encode(array_map('intval', array_column($overview, 'avg_hpa'))) ?>,
           borderWidth: 1,
-          order: <?=($zindex--)?>,
+          order: <?php echo json_encode($zindex--) ?>,
           yAxisID: 'right',
           borderColor: '#c9cbcf',
           backgroundColor: '#c9cbcf'
@@ -142,9 +149,9 @@ $zindex = 0;
         {
           type: 'line',
           label: 'Temperature (°C)',
-          data: <?php echo json_encode(array_map('intval', array_column($overview, 'avg_temp'))); ?>,
+          data: <?php echo json_encode(array_map('intval', array_column($overview, 'avg_temp'))) ?>,
           borderWidth: 1,
-          order: <?=($zindex--)?>,
+          order: <?php echo json_encode($zindex--) ?>,
           yAxisID: 'left',
           borderColor: '#ff0000',
           backgroundColor: '#ff0000'
@@ -152,9 +159,9 @@ $zindex = 0;
         {
           type: 'line',
           label: 'Humidity (%)',
-          data: <?php echo json_encode(array_map('intval', array_column($overview, 'avg_hum'))); ?>,
+          data: <?php echo json_encode(array_map('intval', array_column($overview, 'avg_hum'))) ?>,
           borderWidth: 1,
-          order: <?=($zindex--)?>,
+          order: <?php echo json_encode($zindex--) ?>,
           yAxisID: 'left',
           borderColor: '#0000ff',
           backgroundColor: '#0000ff'
@@ -165,7 +172,7 @@ $zindex = 0;
       plugins: {
         title: {
           display: true,
-          text: <?php echo json_encode($title); ?>
+          text: <?php echo json_encode($title) ?>
         }
       },
       scales: {
@@ -226,48 +233,53 @@ foreach(array_keys($overview) as $node_key) {
   }
 
   reset($rooms[$node_key]);
-  $earliest = new DateTimeImmutable(key($rooms[$node_key]), $tz_utc);
+  $earliest = (new DateTimeImmutable(key($rooms[$node_key]), $tz_utc))
+    ->setTimezone($tz_local);
+
   end($rooms[$node_key]);
-  $latest = new DateTimeImmutable(key($rooms[$node_key]), $tz_utc);
+  $latest = (new DateTimeImmutable(key($rooms[$node_key]), $tz_utc))
+    ->setTimezone($tz_local);
+
   reset($rooms[$node_key]);
 
   $titles[$node_key] = sprintf(
-    'Room "%s" between %s and %s',
+    'Room "%s" on %s between %s and %s',
     $node_key,
-    $earliest->setTimezone($tz_local)->format('Y-m-d H:i:s'),
-    $latest->setTimezone($tz_local)->format('Y-m-d H:i:s'),
+    $earliest->format('Y-m-d'),
+    $earliest->format('H:i:s'),
+    $latest->format('H:i:s'),
   );
 }
 ?>
 
 <?php foreach(array_keys($overview) as $node_key): ?>
   <?php $zindex = 0; ?>
-  <canvas id="room-<?=$node_key?>"></canvas>
+  <canvas id="<?php echo htmlspecialchars(sprintf('room-%s', $node_key), ENT_QUOTES) ?>"></canvas>
 
   <script>
-    new Chart(document.getElementById('room-<?=$node_key?>'), {
+    new Chart(document.getElementById(<?php echo json_encode(sprintf('room-%s', $node_key)) ?>), {
       data: {
-        labels: <?php echo json_encode($labels[$node_key]); ?>,
+        labels: <?php echo json_encode($labels[$node_key]) ?>,
         datasets: [
           <?php foreach($datasets as $field => $config): ?>
           {
             type: 'line',
-            label: <?=json_encode($config['label'])?>,
-            data: <?php echo json_encode(array_map('intval', array_column($rooms[$node_key], $field))); ?>,
+            label: <?php echo json_encode($config['label']) ?>,
+            data: <?php echo json_encode(array_map('intval', array_column($rooms[$node_key], $field))) ?>,
             borderWidth: 1,
             weight: 1,
-            order: <?=($zindex--)?>,
+            order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'right',
-            borderColor: '<?=$config['color']?>',
-            backgroundColor: '<?=$config['color']?>'
+            borderColor: <?php echo json_encode($config['color']) ?>,
+            backgroundColor: <?php echo json_encode($config['color']) ?>
           },
           <?php endforeach; ?>
           {
             type: 'line',
             label: 'Barometric (hPA)',
-            data: <?php echo json_encode(array_map('intval', array_column($rooms[$node_key], 'hpa'))); ?>,
+            data: <?php echo json_encode(array_map('intval', array_column($rooms[$node_key], 'hpa'))) ?>,
             borderWidth: 1,
-            order: <?=($zindex--)?>,
+            order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'right',
             borderColor: '#c9cbcf',
             backgroundColor: '#c9cbcf'
@@ -275,9 +287,9 @@ foreach(array_keys($overview) as $node_key) {
           {
             type: 'line',
             label: 'Temperature (°C)',
-            data: <?php echo json_encode(array_map('intval', array_column($rooms[$node_key], 'temp'))); ?>,
+            data: <?php echo json_encode(array_map('intval', array_column($rooms[$node_key], 'temp'))) ?>,
             borderWidth: 1,
-            order: <?=($zindex--)?>,
+            order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'left',
             borderColor: '#ff0000',
             backgroundColor: '#ff0000'
@@ -285,9 +297,9 @@ foreach(array_keys($overview) as $node_key) {
           {
             type: 'line',
             label: 'Humidity (%)',
-            data: <?php echo json_encode(array_map('intval', array_column($rooms[$node_key], 'hum'))); ?>,
+            data: <?php echo json_encode(array_map('intval', array_column($rooms[$node_key], 'hum'))) ?>,
             borderWidth: 1,
-            order: <?=($zindex--)?>,
+            order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'left',
             borderColor: '#0000ff',
             backgroundColor: '#0000ff'
@@ -298,7 +310,7 @@ foreach(array_keys($overview) as $node_key) {
         plugins: {
           title: {
             display: true,
-            text: <?php echo json_encode($titles[$node_key]); ?>
+            text: <?php echo json_encode($titles[$node_key]) ?>
           }
         },
         scales: {
