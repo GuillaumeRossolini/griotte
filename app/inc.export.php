@@ -15,13 +15,21 @@ ini_set('display_errors', 1);
 $tz_utc = new DateTimeZone('UTC');
 $tz_local = new DateTimeZone(date_default_timezone_get());
 
-$start_utc = (new DateTimeImmutable('now', $tz_local))
-  ->setTimestamp(strtotime('today -0 day'))
+$date_filter = empty($_GET['d']) ? date('Y-m-d') : $_GET['d'];
+if(!preg_match('~^(\d{4})-(\d{2})-(\d{2})$~', $date_filter, $match) or !checkdate($match[2], $match[3], $match[1])) {
+  throw new Exception('Invalid date format');
+}
+
+$start_local = new DateTimeImmutable($date_filter, $tz_local);
+
+$start_utc = $start_local
   ->setTimezone($tz_utc);
 
-$end_utc = (new DateTimeImmutable('now', $tz_local))
-  ->setTimestamp(strtotime('today -0 day +1 day -1 second'))
+$end_utc = $start_local
+  ->add(new DateInterval('P1D'))
+  ->sub(new DateInterval('PT1S'))
   ->setTimezone($tz_utc);
+
 
 $db = new PDO('sqlite:../readings.sq3');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -88,6 +96,18 @@ $title = sprintf(
 
 $zindex = 0;
 ?>
+
+<form method="get">
+  <input type="date" name="d" value="<?=$date_filter?>"/>
+</form>
+
+<script>
+  const dateForm = document.querySelector('form');
+  const dateInput = dateForm.querySelector('input[type=date]');
+  dateInput.addEventListener('change', function(e) {
+    dateForm.submit();
+  });
+</script>
 
 <canvas id="overview"></canvas>
 
