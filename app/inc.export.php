@@ -15,6 +15,14 @@ ini_set('display_errors', 1);
 $tz_utc = new DateTimeZone('UTC');
 $tz_local = new DateTimeZone(date_default_timezone_get());
 
+$start_utc = (new DateTimeImmutable('now', $tz_local))
+  ->setTimestamp(strtotime('today -0 day'))
+  ->setTimezone($tz_utc);
+
+$end_utc = (new DateTimeImmutable('now', $tz_local))
+  ->setTimestamp(strtotime('today -0 day +1 day -1 second'))
+  ->setTimezone($tz_utc);
+
 $db = new PDO('sqlite:../readings.sq3');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -40,21 +48,27 @@ SELECT node
   , ROUND(AVG(eco2), 2) AS avg_eco2
   , ROUND(AVG(voc*100), 2) AS avg_voc
 FROM sensor_reading
-WHERE created_at
-  BETWEEN datetime(CURRENT_TIMESTAMP, '-03:00:00')
-  AND datetime(CURRENT_TIMESTAMP, '00:00:00')
+WHERE true
+  AND created_at BETWEEN ? AND ?
 GROUP BY node
 ORDER BY node
 SQL;
 
 $stmt = $db->prepare($sql);
-$stmt->execute();
+$stmt->execute([
+  $start_utc->format('Y-m-d H:i:s'),
+  $end_utc->format('Y-m-d H:i:s'),
+]);
 
 $overview = [];
 $labels = [];
 foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $res) {
   $overview[$res['node_idx']] = $res;
   $labels[] = sprintf('%s (%d)', $res['node_idx'], $res['nb']);
+}
+
+if(!$overview) {
+  throw new Exception('No data');
 }
 
 $datasets = [
@@ -156,7 +170,7 @@ $zindex = 0;
 <?php
 
 $sql = <<<SQL
-SELECT TIME(created_at) AS created_at
+SELECT created_at
   , ROUND(hpa/100, 2) AS hpa
   , ROUND(hum, 2) AS hum
   , ROUND(temp, 2) AS temp
@@ -166,7 +180,7 @@ SELECT TIME(created_at) AS created_at
 FROM sensor_reading
 WHERE true
   AND node = ?
-  AND created_at BETWEEN '2024-09-20 00:00:00' AND '2024-09-20 23:59:59'
+  AND created_at BETWEEN ? AND ?
 ORDER BY created_at
 SQL;
 
@@ -177,35 +191,33 @@ $labels = [];
 $titles = [];
 foreach(array_keys($overview) as $node_key) {
   $node_id = $overview[$node_key]['node'];
-  $stmt->execute([$node_id]);
+  $stmt->execute([
+    $node_id,
+    $start_utc->format('Y-m-d H:i:s'),
+    $end_utc->format('Y-m-d H:i:s'),
+  ]);
 
   foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $res) {
     $created_at = $res['created_at'];
     unset($res['created_at']);
     $rooms[$node_key][$created_at] = array_map('intval', $res);
-    $t = new DateTimeImmutable('2024-09-20 '.$created_at, $tz_utc);
+    $t = new DateTimeImmutable($created_at, $tz_utc);
     $labels[$node_key][] = $t->setTimezone($tz_local)->format('H:i:s');
   }
 
-  $times = array_keys($rooms[$node_key]);
-  natsort($times);
-  $earliest = current($times);
-  end($times);
-  $latest = current($times);
-  reset($times);
-
-  $earliest = new DateTimeImmutable('2024-09-20 '.$earliest, $tz_utc);
-  $latest = new DateTimeImmutable('2024-09-20 '.$latest, $tz_utc);
+  reset($rooms[$node_key]);
+  $earliest = new DateTimeImmutable(key($rooms[$node_key]), $tz_utc);
+  end($rooms[$node_key]);
+  $latest = new DateTimeImmutable(key($rooms[$node_key]), $tz_utc);
+  reset($rooms[$node_key]);
 
   $titles[$node_key] = sprintf(
-    'Room "%s" on %s between %s and %s',
+    'Room "%s" between %s and %s',
     $node_key,
-    $earliest->format('Y-m-d'),
-    $earliest->format('H:i:s'),
-    $latest->format('H:i:s')
+    $earliest->setTimezone($tz_local)->format('Y-m-d H:i:s'),
+    $latest->setTimezone($tz_local)->format('Y-m-d H:i:s'),
   );
 }
-// echo'<pre>';var_dump($rooms);exit;
 ?>
 
 <?php foreach(array_keys($overview) as $node_key): ?>
@@ -215,7 +227,7 @@ foreach(array_keys($overview) as $node_key) {
   <script>
     new Chart(document.getElementById('room-<?=$node_key?>'), {
       data: {
-        labels: <?php echo json_encode($times); ?>,
+        labels: <?php echo json_encode($labels[$node_key]); ?>,
         datasets: [
           <?php foreach($datasets as $field => $config): ?>
           {
