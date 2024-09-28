@@ -1,3 +1,9 @@
+<?php
+error_log(E_ALL);
+ini_set('display_errors', 1);
+date_default_timezone_set('Europe/Paris');
+ob_start("ob_gzhandler");
+?>
 <!doctype html>
 <html lang="en-US">
   <head>
@@ -6,12 +12,8 @@
     <script src="./chart-v4.4.4.js"></script>
   </head>
 <body>
+
 <?php
-
-date_default_timezone_set('Europe/Paris');
-error_log(E_ALL);
-ini_set('display_errors', 1);
-
 $tz_utc = new DateTimeZone('UTC');
 $tz_local = new DateTimeZone(date_default_timezone_get());
 
@@ -34,6 +36,18 @@ $end_utc = $start_local
 $db = new PDO('sqlite:../readings.sq3');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+// The IAQ scale ranges from 0 (clean air) to 500 (heavily polluted air)
+// IAQ=50 corresponds to typical good air and IAQ=200 indicates typical polluted air
+
+// typical hPa levels:
+// 1000+: tropical depression
+// 990-999: tropical storm
+// 980-989: cat1 hurricane
+// 965-979: cat2 hurricane
+// 945-964: cat3 hurricane
+// 920-944: cat4 hurricane
+// 900-919: cat5 hurricane
+// 850-899: tornado
 
 $sql = <<<SQL
 SELECT node
@@ -80,7 +94,7 @@ if(!$overview) {
 }
 
 $datasets = [
-  'iaq'  => ['label' => 'iAQ',  'color' => '#96f'],
+  'iaq'  => ['label' => 'IAQ',  'color' => '#96f'],
   'eco2' => ['label' => 'eCO²', 'color' => '#ff9f40'],
   'voc'  => ['label' => 'VOC',  'color' => '#4bc0c0'],
 ];
@@ -198,7 +212,7 @@ $zindex = 0;
 
 $sql = <<<SQL
 SELECT created_at
-  , ROUND(hpa/100, 2) AS hpa
+  , ROUND(hpa/100, 2)-920 AS hpa
   , ROUND(hum, 2) AS hum
   , ROUND(temp, 2) AS temp
   , ROUND(iaq*10, 2) AS iaq
@@ -275,11 +289,11 @@ foreach($overview as $node_key => $node_average) {
           <?php endforeach; ?>
           {
             type: 'line',
-            label: 'Barometric (hPA)',
+            label: 'Barometric (hPA-920)',
             data: <?php echo json_encode(array_map('intval', array_column($rooms[$node_key], 'hpa'))) ?>,
             borderWidth: 1,
             order: <?php echo json_encode($zindex--) ?>,
-            yAxisID: 'right',
+            yAxisID: 'left',
             borderColor: '#c9cbcf',
             backgroundColor: '#c9cbcf'
           },
