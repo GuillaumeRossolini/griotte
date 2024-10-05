@@ -110,6 +110,7 @@ SQL;
 $db->exec($sql);
 */
 
+
 $sql = <<<SQL
 INSERT INTO sensor_reading (node, hpa, hum, temp, iaq, eco2, voc)
 VALUES (?, ?, ?, ?, ?, ?, ?)

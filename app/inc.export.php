@@ -36,6 +36,17 @@ $end_utc = $start_local
 $db = new PDO('sqlite:../readings.sq3');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+/*
+$sql = <<<SQL
+UPDATE sensor_reading SET node = ? WHERE node = ?;
+SQL;
+
+$db->prepare($sql)->execute([
+  3385105714,
+  3764971370,
+]);
+*/
+
 // The IAQ scale ranges from 0 (clean air) to 500 (heavily polluted air)
 // IAQ=50 corresponds to typical good air and IAQ=200 indicates typical polluted air
 
@@ -49,17 +60,38 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 // 900-919: cat5 hurricane
 // 850-899: tornado
 
+// attic OLD: 3764971370
+
 $sql = <<<SQL
 SELECT node
   , CASE node
-    WHEN 3385449031 THEN 'floor 0 @ kitchen'
-    WHEN 1547794758 THEN 'floor 1 @ bedroom'
-    WHEN 694510667 THEN 'floor 1 @ guest room'
-    WHEN 3764978189 THEN 'floor 1 @ library'
-    WHEN 3764971370 THEN 'floor 2 @ attic'
-    WHEN 3385445268 THEN 'floor 2 @ office'
+    WHEN 1364776260 THEN 'cellar'
+    WHEN 3764979380 THEN 'heater'
+    WHEN 3385449031 THEN 'kitchen'
+    WHEN 695062617 THEN 'salon'
+    WHEN 1547794758 THEN 'bedroom'
+    WHEN 694510667 THEN 'guest room'
+    WHEN 695063509 THEN 'dressing'
+    WHEN 3764978189 THEN 'library'
+    WHEN 3385105714 THEN 'attic'
+    WHEN 3385445268 THEN 'office'
+    WHEN 3385445319 THEN 'playroom'
     ELSE node
   END AS node_lbl
+  , CASE node
+    WHEN 1364776260 THEN -1
+    WHEN 3764979380 THEN 0
+    WHEN 3385449031 THEN 0
+    WHEN 695062617 THEN 0
+    WHEN 1547794758 THEN 1
+    WHEN 694510667 THEN 1
+    WHEN 695063509 THEN 1
+    WHEN 3764978189 THEN 1
+    WHEN 3385105714 THEN 2
+    WHEN 3385445268 THEN 2
+    WHEN 3385445319 THEN 2
+    ELSE 3
+  END AS floor
   , COUNT(1) AS nb
   , MIN(created_at) AS earliest
   , MAX(created_at) AS latest
@@ -72,8 +104,8 @@ SELECT node
 FROM sensor_reading
 WHERE true
   AND created_at BETWEEN ? AND ?
-GROUP BY node
-ORDER BY node_lbl
+GROUP BY node_lbl
+ORDER BY floor, node_lbl
 SQL;
 
 $stmt = $db->prepare($sql);
@@ -86,7 +118,7 @@ $overview = [];
 $labels = [];
 foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $res) {
   $overview[$res['node_lbl']] = $res;
-  $labels[] = sprintf('%s (%d)', $res['node_lbl'], $res['nb']);
+  $labels[] = sprintf('%s@F%d (%d)', $res['node_lbl'], $res['floor'], $res['nb']);
 }
 
 if(!$overview) {
