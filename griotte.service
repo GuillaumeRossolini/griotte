@@ -1,0 +1,16 @@
+[Unit]
+Description=Griotte web server
+After=network.target
+#Before=lighttpd.service
+
+[Service]
+WorkingDirectory=/home/pi/griotte/www
+ExecStart=php -S 192.168.1.14:8080
+#ExecReload=/usr/local/apache2/bin/httpd -k graceful
+Type=exec
+Restart=always
+
+[Install]
+WantedBy=default.target
+RequiredBy=network.target
+
