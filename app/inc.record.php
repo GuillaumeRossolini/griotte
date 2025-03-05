@@ -4,20 +4,20 @@ define('GRIOTTE_STARTTIME', microtime(true));
 header('Content-Type: text/plain; charset=utf-8', true);
 
 register_shutdown_function(function() {
-  error_log(sprintf('Script finished after %0.3fms', microtime(true)-GRIOTTE_STARTTIME));
+  syslog(LOG_DEBUG, sprintf('Script finished after %0.3fms', microtime(true)-GRIOTTE_STARTTIME));
 });
 
 
 if(empty($_POST['data'])) {
   http_response_code(400);
-  error_log('L%d: Missing "data" field in the request body', __LINE__);
+  syslog(LOG_ERR, sp^rintf('L%d: Missing "data" field in the request body', __LINE__));
   die('ko');
 }
 
 $payload = json_decode($_POST['data'], true);
 if(false === $payload) {
   http_response_code(400);
-  error_log('L%d: Input data was not JSON: %s', __LINE__, print_r($_POST['data'], true));
+  syslog(LOG_ERR, sprintf('L%d: Input data was not JSON: %s', __LINE__, print_r($_POST['data'], true)));
   die('ko');
 }
 
@@ -25,13 +25,13 @@ $agent_name = null;
 $griotte_nb = null;
 if(empty($_SERVER['HTTP_USER_AGENT'])) {
   http_response_code(400);
-  error_log(sprintf('L%d: Missing the User-Agent header: %s', __LINE__, json_encode($_SERVER)));
+  syslog(LOG_ERR, sprintf('L%d: Missing the User-Agent header: %s', __LINE__, json_encode($_SERVER)));
   die('ko');
 }
 
 if(!preg_match('~(Griotte)/(\d+)$~', $_SERVER['HTTP_USER_AGENT'], $griotte)) {
   http_response_code(400);
-  error_log(sprintf('L%d: Missing the User-Agent header: %s', __LINE__, $_SERVER['HTTP_USER_AGENT']));
+  syslog(LOG_ERR, sprintf('L%d: Missing the User-Agent header: %s', __LINE__, $_SERVER['HTTP_USER_AGENT']));
   die('ko');
 }
 
@@ -47,12 +47,12 @@ $msg = sprintf(
   base64_decode($payload['msg'])
 );
 
-error_log(sprintf('Received payload: %s', $msg));
+syslog(LOG_INFO, sprintf('Received payload: %s', $msg));
 
 
 if(!preg_match('~says:\s*(\d+)[^;]+;\s*(\d+)[^;]+;\s*(\d+)[^;]+;\s*([0-9.]+)[^;]+;\s*(\d+)[^;]+;\s*([0-9.]+)[^;]+$~', $msg, $readings)) {
   http_response_code(400);
-  error_log(sprintf('L%d: Unable to match reading pattern', __LINE__));
+  syslog(LOG_ERR, sprintf('L%d: Unable to match reading pattern', __LINE__));
   die('ko');
 }
 
@@ -75,7 +75,7 @@ $filemtime = filemtime($run_filename);
 // error_log(sprintf('File "%s" was modified at %s', $run_filename, date('Y-m-d H:i:s', $filemtime)));
 if(false === $filemtime) {
   http_response_code(500);
-  error_log(sprintf('L%d: Unable to get file stats: %s', __LINE__, $run_filename));
+  syslog(LOG_ERR, sprintf('L%d: Unable to get file stats: %s', __LINE__, $run_filename));
   die('ko');
 }
 
@@ -134,9 +134,10 @@ if(!touch($run_filename)) {
   die('ko');
 }
 
-error_log(sprintf('Data appended after %0.3fms', microtime(true)-GRIOTTE_STARTTIME));
+syslog(LOG_INFO, sprintf('Data appended after %0.3fms', microtime(true)-GRIOTTE_STARTTIME));
 goto finish;
 
 
 finish:
 exit;
+
