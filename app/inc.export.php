@@ -1,26 +1,42 @@
 <?php
+
+set_include_path(__DIR__);
+require_once 'inc.helpers.php';
+
 error_log(E_ALL);
 ini_set('display_errors', 1);
 date_default_timezone_set('Europe/Paris');
 ob_start("ob_gzhandler");
-?>
-<!doctype html>
-<html lang="en-US">
-  <head>
-    <meta charset="utf-8" />
-    <title>Griotte metrics</title>
-    <script src="./chart-v4.4.4.js"></script>
-  </head>
-<body>
-
-<?php
-$tz_utc = new DateTimeZone('UTC');
-$tz_local = new DateTimeZone(date_default_timezone_get());
 
 $date_filter = empty($_GET['d']) ? date('Y-m-d') : $_GET['d'];
 if(!preg_match('~^(\d{4})-(\d{2})-(\d{2})$~', $date_filter, $match) or !checkdate($match[2], $match[3], $match[1])) {
   throw new Exception('Invalid date format');
 }
+?>
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title><?php echo html('Griotte metrics for %s', $date_filter) ?></title>
+    <script src="./chart-v4.4.4.js"></script>
+  </head>
+<body>
+
+<form method="get">
+  <input type="date" name="d" value="<?php echo html($date_filter) ?>"/>
+</form>
+
+<script>
+  const dateForm = document.querySelector('form');
+  const dateInput = dateForm.querySelector('input[type=date]');
+  dateInput.addEventListener('change', function(e) {
+    dateForm.submit();
+  });
+</script>
+
+<?php
+$tz_utc = new DateTimeZone('UTC');
+$tz_local = new DateTimeZone(date_default_timezone_get());
 
 $start_local = new DateTimeImmutable($date_filter, $tz_local);
 
@@ -122,7 +138,8 @@ foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $res) {
 }
 
 if(!$overview) {
-  throw new Exception('No data');
+  ?><h1><?php echo html('No data for %s', $date_filter) ?></h1><?php
+  return;
 }
 
 $datasets = [
@@ -149,18 +166,6 @@ $title = sprintf(
 
 $zindex = 0;
 ?>
-
-<form method="get">
-  <input type="date" name="d" value="<?php echo htmlspecialchars($date_filter, ENT_QUOTES) ?>"/>
-</form>
-
-<script>
-  const dateForm = document.querySelector('form');
-  const dateInput = dateForm.querySelector('input[type=date]');
-  dateInput.addEventListener('change', function(e) {
-    dateForm.submit();
-  });
-</script>
 
 <canvas id="overview"></canvas>
 
@@ -299,7 +304,7 @@ foreach($overview as $node_key => $node_average) {
 
 <?php foreach($overview as $node_key => $node_average): ?>
   <?php $zindex = 0; ?>
-  <canvas id="<?php echo htmlspecialchars(sprintf('room-%s', $node_key), ENT_QUOTES) ?>"></canvas>
+  <canvas id="<?php echo html('room-%s', $node_key) ?>"></canvas>
 
   <script>
     new Chart(document.getElementById(<?php echo json_encode(sprintf('room-%s', $node_key)) ?>), {
