@@ -1,8 +1,11 @@
 # griotte
+
 GR IoT
 
+(lots of documentation is missing; please feel free to let me know if you are interested, that will boost me)
 
-## Installing as a service
+
+## Installing the webserver as a service
 
 ```
 sudo cp griotte.service /etc/systemd/system/
