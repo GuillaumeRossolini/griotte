@@ -103,7 +103,9 @@ There are two pieces of software that need to be written:
 - one for the ESP8266 and its attached BME680 sensor;
 - the other for the ESP32.
 
-I went with Arduino IDE for its ease use of use for a single project. I am a beginner in this, after all.
+For this project though, I conflated both programs into one source file using numerous ifdef statements.
+
+I went with Arduino IDE for its ease of use for a single project. I am a beginner in this, after all.
 
 _/!\ When Arduino IDE starts, it will prompt you to update all your dependencies in one click. Do NOT do this, unless you are prepared for dependency headaches. Get in the habit of hitting the ESC key to cancel that prompt._
 
@@ -127,7 +129,7 @@ The following are my installed Board Manager versions:
 - ESP32 v2.0.17 by Espressif systems
 - ESP8266 v3.1.2 by ESP8266 community
 
-(one of these is probably not needed any more; you'll have to check depending the micro controllers you do buy, their documentation supersedes this list)
+(one of these is probably not needed any more; you'll have to check depending the micro controllers you do buy, since their documentation supersedes this list)
 
 If memory serves, the ESP32 board manager had to be held back even though there is a newer major version available.
 
@@ -176,7 +178,7 @@ For what it's worth, and in case I was mistaken with my short list, here are all
 
 I am by no means an expert in this, but here is my process.
 
-Open up Arduino IDE and plug in your ESP device in whichever USB port is available. This can't be through a USB hub, but directly in your PC. Or maybe it can but I don't know the specifics.
+Open up Arduino IDE and plug your ESP device in whichever USB port is available. This can't be through a USB hub, but directly in your PC. Or maybe it can but I don't know the specifics.
 
 This is tough because the driver names in Arduino IDE tend to change over time. Best I can tell, these seem to be working fine:
 |hardware|Arduino IDE driver|
