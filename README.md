@@ -326,3 +326,4 @@ ls -alh /mnt/c/Users/IoT/Documents/bme680-readings_*.sq3
 * after a few weeks, querying the database takes too long, blocking new records from being added while a user is waiting on their graphs;
 * one database file is scary, with MicroSD reliability as we know it (data corruption will happen some day);
 * when a sensor starts returning incorrect readings, it should self reset;
+* the ESP32 is flooding my local DNS resolver logs, it doesn't seem to cache any entries.
