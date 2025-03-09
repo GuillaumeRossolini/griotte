@@ -16,7 +16,7 @@ const String MESH_PASSWORD = "mesh_passwd";
 const int MESH_PORT    = 5555;
 const int MESH_CHANNEL = 2;
 const int MESH_HIDDEN  = 1;
-const int MESH_MAXCONN = 10;
+const int MESH_MAXCONN = 100;
 const int    MESH_ROOT_NODE = 1002444205;  // esp32-c3
 const String MESH_ROOT_HOST = "root.griotte.home";
 

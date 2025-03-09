@@ -1,8 +1,8 @@
 <?php
 
 if(empty($_POST)) {
-  require '../app/inc.export.php';
+  require '../app/graphs.php';
 }
 else {
-  require '../app/inc.record.php';
+  require '../app/api.php';
 }
