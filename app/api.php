@@ -35,7 +35,7 @@ if(!preg_match('~(Griotte)/(\d+)$~', $_SERVER['HTTP_USER_AGENT'], $griotte)) {
   die('ko');
 }
 
-//syslog(LOG_ERR, sprintf('Response sent after %0.3fms', microtime(true)-GRIOTTE_STARTTIME));
+// syslog(LOG_DEBUG, sprintf('Response sent after %0.3fms', microtime(true)-GRIOTTE_STARTTIME));
 
 
 list($agent_name, $griotte_nb) = explode('/', $_SERVER['HTTP_USER_AGENT']);
@@ -63,16 +63,18 @@ echo 'ok';
 
 
 
-$run_filename = sprintf('/var/run/griotte.%s.run', $griotte_nb);
+$nb_inserts = 0;
+
+$run_filename = sprintf('/var/run/griotte/%s.run', $griotte_nb);
 $file_exists = file_exists($run_filename);
 
 if(!$file_exists) {
-  //syslog(LOG_ERR, 'No readings for this node: '.json_encode($dbg));
+  // syslog(LOG_DEBUG, 'No readings for this node: '.json_encode($dbg));
   goto insert;
 }
 
 $filemtime = filemtime($run_filename);
-// syslog(LOG_ERR, sprintf('File "%s" was modified at %s', $run_filename, date('Y-m-d H:i:s', $filemtime)));
+// syslog(LOG_DEBUG, sprintf('File "%s" was modified at %s', $run_filename, date('Y-m-d H:i:s', $filemtime)));
 if(false === $filemtime) {
   syslog(LOG_ERR, sprintf('L%d: Unable to get file stats: %s', __LINE__, $run_filename));
   http_response_code(500);
@@ -80,7 +82,7 @@ if(false === $filemtime) {
 }
 
 if(time() >= ($filemtime + 60*1)) {
-  //syslog(LOG_ERR, 'Readings too old for this node: '.json_encode($dbg));
+  // syslog(LOG_DEBUG, 'Readings too old for this node: '.json_encode($dbg));
   goto insert;
 }
 
@@ -90,25 +92,62 @@ goto finish;
 
 insert:
 
-/*
-// maintenance stuff
+$db_filename = ($nb_inserts == 1)
+  ? sprintf('/home/pi/griotte/db/v1/%d/%s/%s.sq3', date('Y'), date('m-F'), date('Y-m-d'))
+  : '/home/pi/griotte/readings.sq3';
 
-$sql = <<<SQL
-CREATE TABLE IF NOT EXISTS sensor_reading (
-  id INTEGER PRIMARY KEY,
-  created_at INTEGER DEFAULT CURRENT_TIMESTAMP,
-  node INTEGER,
-  hpa INTEGER,
-  hum INTEGER,
-  temp INTEGER,
-  iaq REAL,
-  eco2 INTEGER,
-  voc INTEGER
-);
-SQL;
+$new_db = !file_exists($db_filename);
 
-$db->exec($sql);
-*/
+if($new_db) {
+  if(!file_exists(dirname($db_filename))) {
+    mkdir(dirname($db_filename), 0775, true);
+  }
+
+  if(!touch($db_filename)) {
+    syslog(LOG_ERR, sprintf('L%d: %s "%s"', __LINE__, 'Unable to create the DB file', $db_filename));
+    http_response_code(500);
+    die('ko');
+  }
+
+  chmod($db_filename, 0664);
+}
+
+try {
+  $db = new PDO('sqlite:'.$db_filename);
+  $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+}
+catch(Exception $e) {
+  syslog(LOG_ERR, sprintf('L%d: %s%s%s', __LINE__, $e->getMessage(), PHP_EOL, $e->getTraceAsString()));
+  http_response_code(500);
+  die('ko');
+}
+
+
+if($new_db) {
+  $sql = <<<SQL
+  CREATE TABLE IF NOT EXISTS sensor_reading (
+    id INTEGER PRIMARY KEY,
+    created_at INTEGER DEFAULT CURRENT_TIMESTAMP,
+    node INTEGER,
+    hpa INTEGER,
+    hum INTEGER,
+    temp INTEGER,
+    iaq REAL,
+    eco2 INTEGER,
+    voc INTEGER
+  );
+  SQL;
+
+  try {
+    $db->exec($sql);
+    syslog(LOG_DEBUG, 'Created DB: '.$db_filename);
+  }
+  catch(Exception $e) {
+    syslog(LOG_ERR, sprintf('L%d: %s%s%s', __LINE__, $e->getMessage(), PHP_EOL, $e->getTraceAsString()));
+    http_response_code(500);
+    die('ko');
+  }
+}
 
 
 $sql = <<<SQL
@@ -117,10 +156,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?)
 SQL;
 
 try {
-  $db = new PDO('sqlite:../readings.sq3');
-  $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
   $insert = $db->prepare($sql);
   $insert->execute(array_merge([$griotte_nb], $readings));
+  $nb_inserts += $insert->rowCount();
 }
 catch(Exception $e) {
   syslog(LOG_ERR, sprintf('L%d: %s%s%s', __LINE__, $e->getMessage(), PHP_EOL, $e->getTraceAsString()));
@@ -135,7 +173,13 @@ if(!touch($run_filename)) {
 }
 
 syslog(LOG_INFO, sprintf('Data appended after %0.3fms', microtime(true)-GRIOTTE_STARTTIME));
-goto finish;
+
+if($nb_inserts >= 2) {
+  goto finish;
+}
+else {
+  goto insert;
+}
 
 
 finish:

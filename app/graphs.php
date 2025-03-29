@@ -12,13 +12,32 @@ $date_filter = empty($_GET['d']) ? date('Y-m-d') : $_GET['d'];
 if(!preg_match('~^(\d{4})-(\d{2})-(\d{2})$~', $date_filter, $match) or !checkdate($match[2], $match[3], $match[1])) {
   throw new Exception('Invalid date format');
 }
+
+$tz_utc = new DateTimeZone('UTC');
+$tz_local = new DateTimeZone(date_default_timezone_get());
+
+$start_local = new DateTimeImmutable($date_filter, $tz_local);
+
+$start_utc = $start_local
+  ->setTimezone($tz_utc);
+
+$end_utc = $start_local
+  ->add(new DateInterval('P1D'))
+  ->sub(new DateInterval('PT1S'))
+  ->setTimezone($tz_utc);
+
+
+$db_filename = sprintf('/home/pi/griotte/db/v1/%d/%s/%s.sq3', $start_local->format('Y'), $start_local->format('m-F'), $start_local->format('Y-m-d'));
+if(!file_exists($db_filename)) {
+  throw new Exception(sprintf('DB file does not exist: %s', $db_filename));
+}
 ?>
 <!doctype html>
 <html lang="en-US">
   <head>
     <meta charset="utf-8" />
     <title><?php echo html('Griotte metrics for %s', $date_filter) ?></title>
-    <script src="./chart-v4.4.4.js"></script>
+    <script src="./?script=chart-v4.4.4.js"></script>
   </head>
 <body>
 
@@ -35,21 +54,7 @@ if(!preg_match('~^(\d{4})-(\d{2})-(\d{2})$~', $date_filter, $match) or !checkdat
 </script>
 
 <?php
-$tz_utc = new DateTimeZone('UTC');
-$tz_local = new DateTimeZone(date_default_timezone_get());
-
-$start_local = new DateTimeImmutable($date_filter, $tz_local);
-
-$start_utc = $start_local
-  ->setTimezone($tz_utc);
-
-$end_utc = $start_local
-  ->add(new DateInterval('P1D'))
-  ->sub(new DateInterval('PT1S'))
-  ->setTimezone($tz_utc);
-
-
-$db = new PDO('sqlite:../readings.sq3');
+$db = new PDO('sqlite:'.$db_filename);
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 /*

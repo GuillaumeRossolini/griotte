@@ -273,8 +273,11 @@ The basic command looks like this:
 
 ```sh
 git clone https://github.com/GuillaumeRossolini/griotte.git
+sudo mkdir /var/run/griotte
+sudo chown -R www-data /var/run/griotte
+sudo chown -R www-data:pi griotte
 cd griotte/www
-php -S 192.168.1.14:8080 &
+sudo -u www-data php -S localhost:8080
 ```
 
 The script will listen to the ESP32, which will be pushing measurements constantly (in my case that's 10 nodes every 3 seconds, spread unevenly).
@@ -290,7 +293,7 @@ The PHP app is not based on any framework, I'm only using PDO for the database l
 
 ## F- Linux service components
 
-// to gather and store the data, and provide it on request in easy to consume charts for us humans
+To gather and store the data, and provide it on request in easy to consume charts for us humans.
 
 ```bash
 sudo cp griotte.service /etc/systemd/system/
@@ -306,6 +309,12 @@ Read the logs with:
 journalctl -u griotte -b -f
 ```
 
+If you need to modify the service file, run this afterwards:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart griotte.service
+```
+
 
 ## G- Database backups
 
@@ -318,6 +327,7 @@ PAUSE
 This is the `sync-readings.sh` script:
 ```bash
 #!/usr/bin/env bash
+time scp pihole-gr:/home/pi/griotte/db/.sq3 /mnt/c/Users/IoT/Documents/bme680-readings/
 time scp pihole-gr:/home/pi/griotte/*.sq3 /mnt/c/Users/IoT/Documents/bme680-readings_$(date +%Y-%m-%dT%H-%M-%S).sq3
 ls -alh /mnt/c/Users/IoT/Documents/bme680-readings_*.sq3
 ```
