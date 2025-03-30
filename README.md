@@ -27,8 +27,8 @@ For those so inclined, the following are some more technical examples:
 Tailing the web server on an SSH console (helps to see how long it takes to record readings from each griotte):
 ![Example of server logs](./doc/img/2025-03-30_logs.png)
 
-Log from one griotte on the serial console when a bunch of other nodes are coming online (please forgive the low quality on this one):
-![Example of application logs](./doc/img/mesh.jpg)
+Log from one griotte on the serial console as the mesh network tries to settle after new nodes came online:
+![Example of application logs](./doc/img/mesh.png)
 
 Resource usage of the web server process on the Raspberry Pi Zero W (freshly rebooted, the PID 529 here is this process):
 ![Example of htop](./doc/img/htop.png)
