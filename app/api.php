@@ -12,14 +12,14 @@ register_shutdown_function(function() {
 
 
 if(empty($_POST['data'])) {
-  syslog(LOG_ERR, sp^rintf('L%d: Missing "data" field in the request body', __LINE__));
+  syslog(LOG_ERR, sp^rintf('Missing "data" field in the request body'));
   http_response_code(400);
   die('ko');
 }
 
 $payload = json_decode($_POST['data'], true);
 if(false === $payload) {
-  syslog(LOG_ERR, sprintf('L%d: Input data was not JSON: %s', __LINE__, print_r($_POST['data'], true)));
+  syslog(LOG_ERR, sprintf('Input data was not JSON: %s', print_r($_POST['data'], true)));
   http_response_code(400);
   die('ko');
 }
@@ -27,13 +27,13 @@ if(false === $payload) {
 $agent_name = null;
 $griotte_nb = null;
 if(empty($_SERVER['HTTP_USER_AGENT'])) {
-  syslog(LOG_ERR, sprintf('L%d: Missing the User-Agent header: %s', __LINE__, json_encode($_SERVER)));
+  syslog(LOG_ERR, sprintf('Missing the User-Agent header: %s', json_encode($_SERVER)));
   http_response_code(400);
   die('ko');
 }
 
 if(!preg_match('~(Griotte)/(\d+)$~', $_SERVER['HTTP_USER_AGENT'], $griotte)) {
-  syslog(LOG_ERR, sprintf('L%d: Missing the User-Agent header: %s', __LINE__, $_SERVER['HTTP_USER_AGENT']));
+  syslog(LOG_ERR, sprintf('Missing the User-Agent header: %s', $_SERVER['HTTP_USER_AGENT']));
   http_response_code(400);
   die('ko');
 }
@@ -54,7 +54,7 @@ syslog(LOG_INFO, sprintf('Received payload: %s', $msg));
 
 
 if(!preg_match('~says:\s*(\d+)[^;]+;\s*(\d+)[^;]+;\s*(\d+)[^;]+;\s*([0-9.]+)[^;]+;\s*(\d+)[^;]+;\s*([0-9.]+)[^;]+$~', $msg, $readings)) {
-  syslog(LOG_ERR, sprintf('L%d: Unable to match reading pattern', __LINE__));
+  syslog(LOG_ERR, sprintf('Unable to match reading pattern'));
   http_response_code(400);
   die('ko');
 }
@@ -82,13 +82,13 @@ $run_filename = sprintf('%s/%s.run', GRIOTTE_RUN, $griotte_nb);
 $file_exists = file_exists($run_filename);
 
 if(!$file_exists) {
-  syslog(LOG_DEBUG, sprintf('No readings yet for griotte #%s: saving data', $griotte_nb));
+  syslog(LOG_DEBUG, sprintf('No run-file for griotte #%s: saving data', $griotte_nb));
   goto insert;
 }
 
 $filemtime = filemtime($run_filename);
 if(false === $filemtime) {
-  syslog(LOG_ERR, sprintf('Unable to get file stats: %s', $run_filename));
+  syslog(LOG_ERR, sprintf('Unable to get run-file stats: %s', $run_filename));
   http_response_code(500);
   die('ko');
 }
@@ -114,18 +114,8 @@ $db_filenames = [
 foreach($db_filenames as $_db_filename) {
   $new_db = !file_exists($_db_filename);
 
-  if($new_db) {
-    if(!file_exists(dirname($_db_filename))) {
-      mkdir(dirname($_db_filename), 0775, true);
-    }
-
-    if(!touch($_db_filename)) {
-      syslog(LOG_ERR, sprintf('L%d: %s "%s"', __LINE__, 'Unable to create the DB file', $_db_filename));
-      http_response_code(500);
-      die('ko');
-    }
-
-    chmod($_db_filename, 0664);
+  if(!file_exists(dirname($_db_filename))) {
+    mkdir(dirname($_db_filename), 0775, true);
   }
 
   try {
@@ -140,6 +130,8 @@ foreach($db_filenames as $_db_filename) {
 
 
   if($new_db) {
+    chmod($_db_filename, 0664);
+
     $sql = <<<SQL
     CREATE TABLE IF NOT EXISTS sensor_reading (
       id INTEGER PRIMARY KEY,
@@ -181,13 +173,13 @@ foreach($db_filenames as $_db_filename) {
     die('ko');
   }
 
-  if(!touch($run_filename)) {
-    syslog(LOG_ERR, sprintf('L%d: Unable to create file: %s', __LINE__, $run_filename));
-    http_response_code(500);
-    die('ko');
-  }
-
   syslog(LOG_INFO, sprintf('Data appended after %0.3fms to %s', microtime(true)-GRIOTTE_STARTTIME, $_db_filename));
+}
+
+if(!touch($run_filename)) {
+  syslog(LOG_ERR, sprintf('Unable to create file: %s', $run_filename));
+  http_response_code(500);
+  die('ko');
 }
 
 goto finish;
