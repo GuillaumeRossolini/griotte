@@ -344,7 +344,10 @@ find \
 ```
 
 
-## Known issues
+## Known issues & Wishlist
 
-* when a sensor starts returning incorrect readings, it should self reset;
-* the ESP32 is flooding my local DNS resolver logs, it doesn't seem to cache any entries.
+* when a sensor starts returning incorrect readings, it should recalibrate or self reset
+* when a node fails to reconnect to the mesh, it should self reset
+* the ESP32 is flooding my local DNS resolver logs, it doesn't seem to cache any entries
+* changes to the mesh topology woud be useful in the database (only the ESP32 point of view)
+* the nodes shouldn't have to wait for the BME sensor to finish self calibrating (air quality), to send other readings (temperature, humidity, barometric pressure)

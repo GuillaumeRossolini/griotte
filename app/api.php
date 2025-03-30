@@ -175,7 +175,7 @@ if(!touch($run_filename)) {
   die('ko');
 }
 
-syslog(LOG_INFO, sprintf('Data appended to %s after %0.3fms', $db_filename, microtime(true)-GRIOTTE_STARTTIME));
+syslog(LOG_INFO, sprintf('Data appended after %0.3fms to %s', microtime(true)-GRIOTTE_STARTTIME, $db_filename));
 
 if($nb_inserts >= 2) {
   goto finish;
