@@ -1,6 +1,9 @@
 <?php
 
-define('GRIOTTE_STARTTIME', microtime(true));
+set_include_path(__DIR__);
+require_once 'inc.constants.php';
+require_once 'inc.helpers.php';
+
 header('Content-Type: text/plain; charset=utf-8', true);
 
 register_shutdown_function(function() {
@@ -65,11 +68,11 @@ echo 'ok';
 
 $nb_inserts = 0;
 
-$run_filename = sprintf('/var/run/griotte/%s.run', $griotte_nb);
+$run_filename = sprintf('%s/%s.run', GRIOTTE_RUN, $griotte_nb);
 $file_exists = file_exists($run_filename);
 
 if(!$file_exists) {
-  // syslog(LOG_DEBUG, 'No readings for this node: '.json_encode($dbg));
+  // syslog(LOG_DEBUG, 'No readings yet for this node: '.json_encode($dbg));
   goto insert;
 }
 
@@ -93,8 +96,8 @@ goto finish;
 insert:
 
 $db_filename = ($nb_inserts == 1)
-  ? sprintf('/home/pi/griotte/db/v1/%d/%s/%s.sq3', date('Y'), date('m-F'), date('Y-m-d'))
-  : '/home/pi/griotte/readings.sq3';
+  ? sprintf('%s/db/v1/%d/%s/%s.sq3', GRIOTTE_FOLDER, date('Y'), date('m-F'), date('Y-m-d'))
+  : sprintf('%s/readings.sq3', GRIOTTE_FOLDER);
 
 $new_db = !file_exists($db_filename);
 
@@ -172,7 +175,7 @@ if(!touch($run_filename)) {
   die('ko');
 }
 
-syslog(LOG_INFO, sprintf('Data appended after %0.3fms', microtime(true)-GRIOTTE_STARTTIME));
+syslog(LOG_INFO, sprintf('Data appended to %s after %0.3fms', $db_filename, microtime(true)-GRIOTTE_STARTTIME));
 
 if($nb_inserts >= 2) {
   goto finish;

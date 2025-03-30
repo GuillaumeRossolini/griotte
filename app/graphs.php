@@ -1,6 +1,7 @@
 <?php
 
 set_include_path(__DIR__);
+require_once 'inc.constants.php';
 require_once 'inc.helpers.php';
 
 error_log(E_ALL);
@@ -12,29 +13,7 @@ $date_filter = empty($_GET['d']) ? date('Y-m-d') : $_GET['d'];
 if(!preg_match('~^(\d{4})-(\d{2})-(\d{2})$~', $date_filter, $match) or !checkdate($match[2], $match[3], $match[1])) {
   throw new Exception('Invalid date format');
 }
-?>
-<!doctype html>
-<html lang="en-US">
-  <head>
-    <meta charset="utf-8" />
-    <title><?php echo html('Griotte metrics for %s', $date_filter) ?></title>
-    <script src="./?script=chart-v4.4.4.js"></script>
-  </head>
-<body>
 
-<form method="get">
-  <input type="date" name="d" value="<?php echo html($date_filter) ?>"/>
-</form>
-
-<script>
-  const dateForm = document.querySelector('form');
-  const dateInput = dateForm.querySelector('input[type=date]');
-  dateInput.addEventListener('change', function(e) {
-    dateForm.submit();
-  });
-</script>
-
-<?php
 $tz_utc = new DateTimeZone('UTC');
 $tz_local = new DateTimeZone(date_default_timezone_get());
 
@@ -48,7 +27,30 @@ $end_utc = $start_local
   ->sub(new DateInterval('PT1S'))
   ->setTimezone($tz_utc);
 
+unset($date_filter, $match);
+?>
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title><?php echo html('Griotte metrics for %s', $start_local->format('Y-m-d')) ?></title>
+    <script src="./?script=chart-v4.4.4.js"></script>
+  </head>
+<body>
 
+<form method="get">
+  <input type="date" name="d" value="<?php echo html($start_local->format('Y-m-d')) ?>"/>
+</form>
+
+<script>
+  const dateForm = document.querySelector('form');
+  const dateInput = dateForm.querySelector('input[type=date]');
+  dateInput.addEventListener('change', function(e) {
+    dateForm.submit();
+  });
+</script>
+
+<?php
 $db_filename = sprintf('/home/pi/griotte/db/v1/%d/%s/%s.sq3', $start_local->format('Y'), $start_local->format('m-F'), $start_local->format('Y-m-d'));
 if(!file_exists($db_filename)) {
   syslog(LOG_ERR, sprintf('DB file does not exist: %s', $db_filename));
