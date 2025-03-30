@@ -68,6 +68,20 @@ echo 'ok';
 
 $nb_inserts = 0;
 
+
+if(!file_exists(GRIOTTE_RUN)) {
+  syslog(LOG_ERR, sprintf('Run folder not found: %s', GRIOTTE_RUN));
+  http_response_code(500);
+  die('ko');
+}
+
+if(!is_writable(GRIOTTE_RUN)) {
+  syslog(LOG_ERR, sprintf('Run folder not writable: %s', GRIOTTE_RUN));
+  http_response_code(500);
+  die('ko');
+}
+
+
 $run_filename = sprintf('%s/%s.run', GRIOTTE_RUN, $griotte_nb);
 $file_exists = file_exists($run_filename);
 
@@ -78,7 +92,7 @@ if(!$file_exists) {
 
 $filemtime = filemtime($run_filename);
 if(false === $filemtime) {
-  syslog(LOG_ERR, sprintf('L%d: Unable to get file stats: %s', __LINE__, $run_filename));
+  syslog(LOG_ERR, sprintf('Unable to get file stats: %s', $run_filename));
   http_response_code(500);
   die('ko');
 }
