@@ -65,10 +65,6 @@ http_response_code(200);
 echo 'ok';
 
 
-
-$nb_inserts = 0;
-
-
 if(!file_exists(GRIOTTE_RUN)) {
   syslog(LOG_ERR, sprintf('Run folder not found: %s', GRIOTTE_RUN));
   http_response_code(500);
@@ -110,94 +106,91 @@ goto finish;
 
 insert:
 
-$db_filename = ($nb_inserts == 1)
-  ? sprintf('%s/db/v1/%d/%s/%s.sq3', GRIOTTE_FOLDER, date('Y'), date('m-F'), date('Y-m-d'))
-  : sprintf('%s/readings.sq3', GRIOTTE_FOLDER);
+$db_filenames = [
+  sprintf('%s/db/v1/%d/%s/%s.sq3', GRIOTTE_FOLDER, date('Y'), date('m-F'), date('Y-m-d')),
+  sprintf('%s/readings.sq3', GRIOTTE_FOLDER),
+];
 
-$new_db = !file_exists($db_filename);
+foreach($db_filenames as $_db_filename) {
+  $new_db = !file_exists($_db_filename);
 
-if($new_db) {
-  if(!file_exists(dirname($db_filename))) {
-    mkdir(dirname($db_filename), 0775, true);
+  if($new_db) {
+    if(!file_exists(dirname($_db_filename))) {
+      mkdir(dirname($_db_filename), 0775, true);
+    }
+
+    if(!touch($_db_filename)) {
+      syslog(LOG_ERR, sprintf('L%d: %s "%s"', __LINE__, 'Unable to create the DB file', $_db_filename));
+      http_response_code(500);
+      die('ko');
+    }
+
+    chmod($_db_filename, 0664);
   }
-
-  if(!touch($db_filename)) {
-    syslog(LOG_ERR, sprintf('L%d: %s "%s"', __LINE__, 'Unable to create the DB file', $db_filename));
-    http_response_code(500);
-    die('ko');
-  }
-
-  chmod($db_filename, 0664);
-}
-
-try {
-  $db = new PDO('sqlite:'.$db_filename);
-  $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-}
-catch(Exception $e) {
-  syslog(LOG_ERR, sprintf('L%d: %s%s%s', __LINE__, $e->getMessage(), PHP_EOL, $e->getTraceAsString()));
-  http_response_code(500);
-  die('ko');
-}
-
-
-if($new_db) {
-  $sql = <<<SQL
-  CREATE TABLE IF NOT EXISTS sensor_reading (
-    id INTEGER PRIMARY KEY,
-    created_at INTEGER DEFAULT CURRENT_TIMESTAMP,
-    node INTEGER,
-    hpa INTEGER,
-    hum INTEGER,
-    temp INTEGER,
-    iaq REAL,
-    eco2 INTEGER,
-    voc INTEGER
-  );
-  SQL;
 
   try {
-    $db->exec($sql);
-    syslog(LOG_DEBUG, 'Created DB: '.$db_filename);
+    $db = new PDO('sqlite:'.$_db_filename);
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
   }
   catch(Exception $e) {
     syslog(LOG_ERR, sprintf('L%d: %s%s%s', __LINE__, $e->getMessage(), PHP_EOL, $e->getTraceAsString()));
     http_response_code(500);
     die('ko');
   }
-}
 
 
-$sql = <<<SQL
-INSERT INTO sensor_reading (node, hpa, hum, temp, iaq, eco2, voc)
-VALUES (?, ?, ?, ?, ?, ?, ?)
-SQL;
+  if($new_db) {
+    $sql = <<<SQL
+    CREATE TABLE IF NOT EXISTS sensor_reading (
+      id INTEGER PRIMARY KEY,
+      created_at INTEGER DEFAULT CURRENT_TIMESTAMP,
+      node INTEGER,
+      hpa INTEGER,
+      hum INTEGER,
+      temp INTEGER,
+      iaq REAL,
+      eco2 INTEGER,
+      voc INTEGER
+    );
+    SQL;
 
-try {
-  $insert = $db->prepare($sql);
-  $insert->execute(array_merge([$griotte_nb], $readings));
-  $nb_inserts += $insert->rowCount();
-}
-catch(Exception $e) {
-  syslog(LOG_ERR, sprintf('L%d: %s%s%s', __LINE__, $e->getMessage(), PHP_EOL, $e->getTraceAsString()));
-  http_response_code(500);
-  die('ko');
+    try {
+      $db->exec($sql);
+      syslog(LOG_DEBUG, 'Created DB: '.$_db_filename);
+    }
+    catch(Exception $e) {
+      syslog(LOG_ERR, sprintf('L%d: %s%s%s', __LINE__, $e->getMessage(), PHP_EOL, $e->getTraceAsString()));
+      http_response_code(500);
+      die('ko');
+    }
+  }
+
+
+  $sql = <<<SQL
+  INSERT INTO sensor_reading (node, hpa, hum, temp, iaq, eco2, voc)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
+  SQL;
+
+  try {
+    $insert = $db->prepare($sql);
+    $insert->execute(array_merge([$griotte_nb], $readings));
+  }
+  catch(Exception $e) {
+    syslog(LOG_ERR, sprintf('L%d: %s%s%s', __LINE__, $e->getMessage(), PHP_EOL, $e->getTraceAsString()));
+    http_response_code(500);
+    die('ko');
+  }
+
+  if(!touch($run_filename)) {
+    syslog(LOG_ERR, sprintf('L%d: Unable to create file: %s', __LINE__, $run_filename));
+    http_response_code(500);
+    die('ko');
+  }
+
+  syslog(LOG_INFO, sprintf('Data appended after %0.3fms to %s', microtime(true)-GRIOTTE_STARTTIME, $_db_filename));
 }
 
-if(!touch($run_filename)) {
-  syslog(LOG_ERR, sprintf('L%d: Unable to create file: %s', __LINE__, $run_filename));
-  http_response_code(500);
-  die('ko');
-}
-
-syslog(LOG_INFO, sprintf('Data appended after %0.3fms to %s', microtime(true)-GRIOTTE_STARTTIME, $db_filename));
-
-if($nb_inserts >= 2) {
-  goto finish;
-}
-else {
-  goto insert;
-}
+goto finish;
 
 
 finish:
