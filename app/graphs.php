@@ -51,7 +51,8 @@ $end_utc = $start_local
 
 $db_filename = sprintf('/home/pi/griotte/db/v1/%d/%s/%s.sq3', $start_local->format('Y'), $start_local->format('m-F'), $start_local->format('Y-m-d'));
 if(!file_exists($db_filename)) {
-  echo html('DB file does not exist: %s', $db_filename);
+  syslog(LOG_ERR, sprintf('DB file does not exist: %s', $db_filename));
+  echo html('DB file does not exist: %s', basename($db_filename));
   return;
 }
 

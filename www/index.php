@@ -18,6 +18,4 @@ if(!empty($_GET['script'])) {
 }
 
 
-syslog(LOG_DEBUG, sprintf('L%d: %s', __LINE__, json_encode($_SERVER)));
-
 require '../app/graphs.php';
