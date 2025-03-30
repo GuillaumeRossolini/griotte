@@ -327,9 +327,20 @@ PAUSE
 This is the `sync-readings.sh` script:
 ```bash
 #!/usr/bin/env bash
-time scp pihole-gr:/home/pi/griotte/db/.sq3 /mnt/c/Users/IoT/Documents/bme680-readings/
-time scp pihole-gr:/home/pi/griotte/*.sq3 /mnt/c/Users/IoT/Documents/bme680-readings_$(date +%Y-%m-%dT%H-%M-%S).sq3
-ls -alh /mnt/c/Users/IoT/Documents/bme680-readings_*.sq3
+
+time scp \
+	pihole-gr:/home/pi/griotte/db/v1/*/*/*.sq3 \
+	/mnt/c/Users/IoT/Documents/bme680-readings/v1/
+
+time scp \
+	pihole-gr:/home/pi/griotte/*.sq3 \
+	/mnt/c/Users/IoT/Documents/bme680-readings/big_$(date +%Y-%m-%dT%H-%M-%S).sq3
+
+find \
+	/mnt/c/Users/IoT/Documents/bme680-readings \
+	-type f \
+	-name "*.sq3" \
+	-printf "%CY-%Cm-%Cd %CT\t%u\t%M\t%kK\t%h\t%f\n"
 ```
 
 
