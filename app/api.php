@@ -72,23 +72,24 @@ $run_filename = sprintf('%s/%s.run', GRIOTTE_RUN, $griotte_nb);
 $file_exists = file_exists($run_filename);
 
 if(!$file_exists) {
-  // syslog(LOG_DEBUG, 'No readings yet for this node: '.json_encode($dbg));
+  syslog(LOG_DEBUG, sprintf('No readings yet for griotte #%s: saving data', $griotte_nb));
   goto insert;
 }
 
 $filemtime = filemtime($run_filename);
-// syslog(LOG_DEBUG, sprintf('File "%s" was modified at %s', $run_filename, date('Y-m-d H:i:s', $filemtime)));
 if(false === $filemtime) {
   syslog(LOG_ERR, sprintf('L%d: Unable to get file stats: %s', __LINE__, $run_filename));
   http_response_code(500);
   die('ko');
 }
 
-if(time() >= ($filemtime + 60*1)) {
-  // syslog(LOG_DEBUG, 'Readings too old for this node: '.json_encode($dbg));
+if(time() >= ($filemtime + GRIOTTE_DELAY)) {
+  syslog(LOG_DEBUG, sprintf('Stale readings for griotte #%s (last modified at %s): saving new data', $griotte_nb, date('Y-m-d H:i:s', $filemtime)));
   goto insert;
 }
 
+
+syslog(LOG_DEBUG, sprintf('Readings still valid for griotte #%s (last modified at %s): skipping new data', $griotte_nb, date('Y-m-d H:i:s', $filemtime)));
 
 goto finish;
 
