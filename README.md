@@ -205,11 +205,11 @@ As long as there are a few words of english and technical codes on a loop, you'r
 * close and restart Arduino IDE;
 * reboot the computer.
 
-I've had to unplug from USB, close Arduino IDE and try again many times. Sometimes several times in a row, sometimes as many as 15 failed attempts in a row, and sometimes I had to resort to a PC reboot to get anything working. I have no clue if this is more a driver or a hardware reliability issue, but either way, we just have to work around it. I've heard of other people who never had these issues. :shrug:
+I've had to close the Serial Monitor, unplug from USB, close Arduino IDE and try again many times. Sometimes several times in a row, sometimes as many as 15 failed attempts in a row, and sometimes I had to resort to a PC reboot to get anything working. I have no clue if this is more a driver or a hardware reliability issue, but either way, we just have to work around it. I've heard of other people who never had these issues. :shrug:
 
 Also, I have suffered through the occasional blue screen for this project. Expect this and prepare accordingly (save often).
 
-At this point, switch out of Serial Monitor and into Output tab, then paste the code in the sketch, adjust the Wifi SSID and other constants in the code, and finally go ahead and select "Sketch > Upload" from the menus (or simply the -> arrow displayed at the top of Arduino IDE).
+At this point, close the Serial Monitor and go back to the Output tab, then paste the code in the sketch, adjust the Wifi SSID and other constants in the code, and finally go ahead and select "Sketch > Upload" from the menus (or simply the -> arrow displayed at the top of Arduino IDE). Reopen the Serial Monitor after the upload is done.
 
 Here is a table of the constants that should be adjusted in the code before flashing:
 
