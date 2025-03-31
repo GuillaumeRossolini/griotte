@@ -11,13 +11,14 @@
 #include <ArduinoHttpClient.h>
 #endif
 
+const String BUILD_ID      = "This is build LOREM IPSUM";
 const String MESH_PREFIX   = "mesh_ssid";
 const String MESH_PASSWORD = "mesh_passwd";
 const int MESH_PORT    = 5555;
 const int MESH_CHANNEL = 2;
 const int MESH_HIDDEN  = 1;
 const int MESH_MAXCONN = 100;
-const int    MESH_ROOT_NODE = 1002444205;  // esp32-c3
+const int MESH_ROOT_NODE = 1002444205;  // esp32-c3
 const String MESH_ROOT_HOST = "root.griotte.home";
 
 #if defined(ESP32)
@@ -144,7 +145,7 @@ void setup(void)
 
   // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG
   // ERROR | MESH_STATUS | REMOTE | DEBUG
-  mesh.setDebugMsgTypes(ERROR | CONNECTION | REMOTE | DEBUG);
+  mesh.setDebugMsgTypes(ERROR | REMOTE | DEBUG);
   mesh.init(MESH_PREFIX, MESH_PASSWORD, (uint16_t) MESH_PORT, WIFI_AP_STA, (uint8_t) MESH_CHANNEL, (uint8_t) MESH_HIDDEN, (uint8_t) MESH_MAXCONN);
   mesh.onReceive(&onReceivedCallback);
   mesh.onNewConnection(&onNewConnectionCallback);
@@ -155,6 +156,7 @@ void setup(void)
 
   currentNode = mesh.getNodeId();
   Serial.printf("I am node #%u\n", currentNode);
+  Serial.println(BUILD_ID);
 
 #if defined(ESP32)
   mesh.sendBroadcast("Hi, ESP32 starting up");
@@ -230,16 +232,14 @@ void loop(void)
 
 #if defined(ESP8266)
 byte detectIaqSensor(void) {
-  byte error, address;
+  byte address;
 
   address = 0x76;
   Wire.beginTransmission(address);
-  error = Wire.endTransmission();
-  if(0 != error) {
+  if(0 != Wire.endTransmission()) {
     address = 0x77;
     Wire.beginTransmission(address);
-    error = Wire.endTransmission();
-    if(0 != error) {
+    if(0 != Wire.endTransmission()) {
       address = 0;
     }
   }
