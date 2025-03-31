@@ -354,3 +354,4 @@ find \
 * the ESP32 is flooding my local DNS resolver logs, it doesn't seem to cache any entries
 * changes to the mesh topology woud be useful in the database (only the ESP32 point of view)
 * the nodes shouldn't have to wait for the BME sensor to finish self calibrating (air quality), to send other readings (temperature, humidity, barometric pressure)
+* since the daily split of the database files (cf. commit #2d48c832), the graphs are only showing data from 1 AM to the end of the day (missing 1 hour)
