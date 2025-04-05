@@ -33,6 +33,9 @@ Log from one griotte on the serial console as the mesh network tries to settle a
 Resource usage of the web server process on the Raspberry Pi Zero W (freshly rebooted, the PID 529 here is this process):
 ![Example of htop](./doc/img/htop.png)
 
+Another example of this on video:
+[![alt text](https://i.ytimg.com/vi/f3GzV0eSte4/sddefault.jpg)](https://www.youtube.com/watch?v=f3GzV0eSte4)
+
 
 ## Approximate cost
 
