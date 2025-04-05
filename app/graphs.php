@@ -1,9 +1,5 @@
 <?php
 
-set_include_path(__DIR__);
-require_once 'inc.constants.php';
-require_once 'inc.helpers.php';
-
 error_log(E_ALL);
 ini_set('display_errors', 1);
 date_default_timezone_set('Europe/Paris');

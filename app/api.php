@@ -1,14 +1,6 @@
 <?php
 
-set_include_path(__DIR__);
-require_once 'inc.constants.php';
-require_once 'inc.helpers.php';
-
 header('Content-Type: text/plain; charset=utf-8', true);
-
-register_shutdown_function(function() {
-  syslog(LOG_DEBUG, sprintf('Script finished after %0.3fms', microtime(true)-GRIOTTE_STARTTIME));
-});
 
 
 if(empty($_POST['data'])) {
@@ -106,8 +98,16 @@ goto finish;
 
 insert:
 
+// let's save every reading in a faily database, as well as a giant all-time database
+// and also in the databases from the previous and the next day to avoid timezone issues
+
+$yesterday = strtotime('yesterday');
+$tomorrow = strtotime('tomorrow');
+
 $db_filenames = [
+  sprintf('%s/db/v1/%d/%s/%s.sq3', GRIOTTE_FOLDER, date('Y', $yesterday), date('m-F', $yesterday), date('Y-m-d', $yesterday)),
   sprintf('%s/db/v1/%d/%s/%s.sq3', GRIOTTE_FOLDER, date('Y'), date('m-F'), date('Y-m-d')),
+  sprintf('%s/db/v1/%d/%s/%s.sq3', GRIOTTE_FOLDER, date('Y', $tomorrow), date('m-F', $tomorrow), date('Y-m-d', $tomorrow)),
   sprintf('%s/readings.sq3', GRIOTTE_FOLDER),
 ];
 
@@ -173,7 +173,7 @@ foreach($db_filenames as $_db_filename) {
     die('ko');
   }
 
-  syslog(LOG_INFO, sprintf('Data appended after %0.3fms to %s', microtime(true)-GRIOTTE_STARTTIME, $_db_filename));
+  syslog(LOG_INFO, sprintf('Data appended after %0.3fms to %s', microtime(true)-GRIOTTE_STARTTIME, basename($_db_filename)));
 }
 
 if(!touch($run_filename)) {
