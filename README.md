@@ -31,10 +31,17 @@ Log from one griotte on the serial console as the mesh network tries to settle a
 ![Example of application logs](./doc/img/mesh.png)
 
 Resource usage of the web server process on the Raspberry Pi Zero W (freshly rebooted, the PID 529 here is this process):
-![Example of htop](./doc/img/htop.png)
+![Example of htop just after a reboot](./doc/img/htop_fresh.png)
 
-Another example of this on video:
+Another example of this on video with three programs composed on the screen (htop is top left with the griotte webserver highlighted, btop is center right also with the griotte webserver highlighted and journalctl is bottom):
+
 [![alt text](https://i.ytimg.com/vi/f3GzV0eSte4/sddefault.jpg)](https://www.youtube.com/watch?v=f3GzV0eSte4)
+
+After two weeks of uptime, this process is still using a negligible amount of memory (about 13% or 55 MB) and CPU (2%):
+![Example of htop after two weeks of uptime](./doc/img/htop_16d.png)
+![Example of btop after two weeks of uptime](./doc/img/btop_16d.png)
+
+At this point, the system SWAP was taken over by a process (probably the PiHole itself). A reboot cleaned everything up and the griotte webserver started on its own.
 
 
 ## Approximate cost
