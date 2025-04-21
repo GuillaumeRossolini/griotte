@@ -289,6 +289,8 @@ git clone https://github.com/GuillaumeRossolini/griotte.git
 sudo mkdir /var/run/griotte
 sudo chown -R www-data /var/run/griotte
 sudo chown -R www-data:pi griotte
+chmod +x griotte/app/csv2sqlite.sh
+sudo ln -s griotte/app/csv2sqlite.sh /usr/local/bin/csv2sqlite
 cd griotte/www
 sudo -u www-data php -S 0.0.0.0:8080
 ```
@@ -309,16 +311,16 @@ I also tried to write to the file system as little as possible. There are two ti
 * One is for readings for each node, where we may not want to save them every time the node pings home (that's every 3 second) so I used the filesystem to skip 60s per node;
 * The other is global, in order to avoid loading the SQLite database every minute for every node (the higher the number of nodes, the more often this happens: that's once every 6s in my case), so again I used the filesystem to buffer 5 minutes of readings and to commit those after this delay has run out.
 
-Before implementing this last buffer, every write used to take a few hundred ms (and as I said, that was every 6s on average in my case).
+Before implementing this last buffer, every write used to take a few hundred ms through the PHP SQLite driver (and as I said, that was every 6s on average in my case).
 
-But with this strategy:
+But with this method:
 * skipping data that is too recent takes 2ms, it's only a filesystem stats read;
 * buffering data for later commit also takes 2ms, it's a plaintext append operation;
-* committing data from text file to SQLite for the last 5 minutes (that's about 50 readings in my case) takes about 8s.
+* committing data from text file to SQLite for the last 5 minutes (that's about 50 readings in my case) takes less than 1s.
 
-The web server buffers any incoming HTTP requests as well (because it is a single PHP process by design). Therefore, readings that may have come in while the commit was in progress, are processed quickly as soon as the commit is done. So, even the delay caused by the commit is irrelevant to the timestamps.
+The web server buffers any incoming HTTP requests as well (because it is a single PHP process by design). Therefore, readings that may have come in while the commit was in progress, are processed quickly as soon as the commit is done. So, even the small delay caused by the commit is irrelevant to the timestamps.
 
-After all is said and done, I am uncertain that my buffer here does any good, performance-wise. Used to be a few hundred ms every 6s, now it's 8s every 5m. Then umbers look about the same? But at lease I can observe more easily what is happening with a few easy commands :
+Aside from the obvious performance benefits, I can also observe more easily what is happening with a few easy commands:
 * `watch cat buffer.csv`
 * `watch wc -l buffer.csv`
 * `watch ls -alh buffer.csv readings.sq3 run/* db/v1/*/*/$(date +%Y-%m-%d)*`

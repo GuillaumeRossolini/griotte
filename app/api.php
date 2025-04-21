@@ -176,6 +176,11 @@ $db_filenames = [
   sprintf('%s/readings.sq3', GRIOTTE_FOLDER),
 ];
 
+$sql_import = sprintf(
+  file_get_contents('./import.sql'),
+  $buffer_filename
+);
+
 // prepare the DB file handles and SQL statements
 foreach($db_filenames as $_db_idx => $_db_filename) {
   $new_db = !file_exists($_db_filename);
@@ -189,83 +194,25 @@ foreach($db_filenames as $_db_idx => $_db_filename) {
     }
   }
 
-  try {
-    $db = new PDO('sqlite:'.$_db_filename);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-  }
-  catch(Exception $e) {
-    syslog(LOG_ERR, sprintf('L%d: %s%s%s', __LINE__, $e->getMessage(), PHP_EOL, $e->getTraceAsString()));
-    http_response_code(500);
-    die('ko');
-  }
-
   if($new_db) {
     chmod($_db_filename, 0664);
-
-    $sql = <<<SQL
-    CREATE TABLE IF NOT EXISTS sensor_reading (
-      id INTEGER PRIMARY KEY,
-      created_at INTEGER DEFAULT CURRENT_TIMESTAMP,
-      node INTEGER,
-      hpa INTEGER,
-      hum INTEGER,
-      temp INTEGER,
-      iaq REAL,
-      eco2 INTEGER,
-      voc INTEGER
-    );
-    SQL;
-
-    try {
-      $db->exec($sql);
-      syslog(LOG_DEBUG, 'Created DB: '.$_db_filename);
-    }
-    catch(Exception $e) {
-      syslog(LOG_ERR, sprintf('L%d: %s%s%s', __LINE__, $e->getMessage(), PHP_EOL, $e->getTraceAsString()));
-      http_response_code(500);
-      die('ko');
-    }
   }
 
-  $sql = <<<SQL
-  INSERT INTO sensor_reading (created_at, node, hpa, hum, temp, iaq, eco2, voc)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  SQL;
+  $shellcmd = sprintf(
+    'echo %s | sqlite3 %s',
+    escapeshellarg($sql_import),
+    escapeshellarg($_db_filename)
+  );
 
-  try {
-    $inserts[$_db_idx] = $db->prepare($sql);
-  }
-  catch(Exception $e) {
-    syslog(LOG_ERR, sprintf('L%d: %s%s%s', __LINE__, $e->getMessage(), PHP_EOL, $e->getTraceAsString()));
+  $output = null;
+  $res = null;
+  exec($shellcmd, $output, $res);
+  if(0 !== $res) {
+    syslog(LOG_ERR, sprintf('Unable to import data into %s: %s', $_db_filename, json_encode($output)));
     http_response_code(500);
     die('ko');
   }
 }
-
-// insert the readings into each DB
-do {
-  $buffer_readings = trim(fgets($buffer_handle));
-  if(!$buffer_readings) {
-    break;
-  }
-
-  $readings = explode("\t", $buffer_readings);
-  $time = array_shift($readings);
-  $griotte_nb = array_shift($readings);
-
-  foreach($db_filenames as $_db_idx => $_db_filename) {
-    try {
-      $inserts[$_db_idx]->execute(array_merge([$time, $griotte_nb], $readings));
-    }
-    catch(Exception $e) {
-      syslog(LOG_ERR, sprintf('L%d: %s%s%s', __LINE__, $e->getMessage(), PHP_EOL, $e->getTraceAsString()));
-      http_response_code(500);
-      die('ko');
-    }
-
-    syslog(LOG_INFO, sprintf('Data appended after %0.3fms for griotte #%s to %s', microtime(true)-GRIOTTE_STARTTIME, $griotte_nb, basename($_db_filename)));
-  }
-} while($readings);
 
 fclose($buffer_handle);
 if(!fopen($buffer_filename, 'w')) {

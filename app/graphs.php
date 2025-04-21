@@ -57,17 +57,6 @@ if(!file_exists($db_filename)) {
 $db = new PDO('sqlite:'.$db_filename);
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-/*
-$sql = <<<SQL
-UPDATE sensor_reading SET node = ? WHERE node = ?;
-SQL;
-
-$db->prepare($sql)->execute([
-  3385105714,
-  3764971370,
-]);
-*/
-
 // The IAQ scale ranges from 0 (clean air) to 500 (heavily polluted air)
 // IAQ=50 corresponds to typical good air and IAQ=200 indicates typical polluted air
 
