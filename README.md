@@ -290,7 +290,7 @@ sudo mkdir /var/run/griotte
 sudo chown -R www-data /var/run/griotte
 sudo chown -R www-data:pi griotte
 cd griotte/www
-sudo -u www-data php -S localhost:8080
+sudo -u www-data php -S 0.0.0.0:8080
 ```
 
 The script will listen to the ESP32, which will be pushing measurements constantly (in my case that's 10 nodes every 3 seconds, spread unevenly).
@@ -301,7 +301,27 @@ The same web server also serves pretty graphs for me, the human end-user. These 
 
 Writing to the database is constant-time, regardless of the size of the database, but reading from it gets (much) slower as the database grows, even with indexes and prepared statements. Can't expect much from MicroSD storage, after all. Current version of these scripts is only one database for a few months worth of measurements, which is a 63MB file at this point and takes 40s to back up to my computer, if that is any indication of how long it takes to query the entire database.
 
-The PHP app is not based on any framework, I'm only using PDO for the database layer and ChartJS for the graphs. There are even a few `goto` so as to not think about an overly complex structure. There you go.
+The PHP app is not based on any framework, I'm only using PDO for the database layer and ChartJS for the graphs. There are even a few `goto` so as to not think about an overly complex structure, this is a really sequential app. There you go.
+
+I tried to implement a number of failsafes and to think "embedded", as in, avoid writing data when all I need is a timestamp (`filemtime` is great).
+
+I also tried to write to the file system as little as possible. There are two timers:
+* One is for readings for each node, where we may not want to save them every time the node pings home (that's every 3 second) so I used the filesystem to skip 60s per node;
+* The other is global, in order to avoid loading the SQLite database every minute for every node (the higher the number of nodes, the more often this happens: that's once every 6s in my case), so again I used the filesystem to buffer 5 minutes of readings and to commit those after this delay has run out.
+
+Before implementing this last buffer, every write used to take a few hundred ms (and as I said, that was every 6s on average in my case).
+
+But with this strategy:
+* skipping data that is too recent takes 2ms, it's only a filesystem stats read;
+* buffering data for later commit also takes 2ms, it's a plaintext append operation;
+* committing data from text file to SQLite for the last 5 minutes (that's about 50 readings in my case) takes about 8s.
+
+The web server buffers any incoming HTTP requests as well (because it is a single PHP process by design). Therefore, readings that may have come in while the commit was in progress, are processed quickly as soon as the commit is done. So, even the delay caused by the commit is irrelevant to the timestamps.
+
+After all is said and done, I am uncertain that my buffer here does any good, performance-wise. Used to be a few hundred ms every 6s, now it's 8s every 5m. Then umbers look about the same? But at lease I can observe more easily what is happening with a few easy commands :
+* `watch cat buffer.txt `
+* `watch wc -l buffer.txt`
+* `watch ls -alh buffer.csv readings.sq3 run/* db/v1/*/*/$(date +%Y-%m-%d)*`
 
 
 ## F- Linux service components

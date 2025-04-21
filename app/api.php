@@ -53,6 +53,9 @@ if(!preg_match('~says:\s*(\d+)[^;]+;\s*(\d+)[^;]+;\s*(\d+)[^;]+;\s*([0-9.]+)[^;]
 
 
 array_shift($readings);
+$griotte_nb = intval($griotte_nb);
+$readings = array_map('floatval', $readings);
+
 http_response_code(200);
 echo 'ok';
 
@@ -70,24 +73,28 @@ if(!is_writable(GRIOTTE_RUN)) {
 }
 
 
-$run_filename = sprintf('%s/%s.run', GRIOTTE_RUN, $griotte_nb);
-$file_exists = file_exists($run_filename);
+$buffer_filename = sprintf('%s/buffer.csv', GRIOTTE_FOLDER);
 
-if(!$file_exists) {
-  syslog(LOG_DEBUG, sprintf('No run-file for griotte #%s: saving data', $griotte_nb));
-  goto insert;
+$run_filenames = [
+  'buffer' => sprintf('%s/buffer.run', GRIOTTE_RUN),
+  'data' => sprintf('%s/%s.run', GRIOTTE_RUN, $griotte_nb),
+];
+
+if(!file_exists($run_filenames['data'])) {
+  syslog(LOG_DEBUG, sprintf('No run data file for griotte #%s: saving data', $griotte_nb));
+  goto buffer;
 }
 
-$filemtime = filemtime($run_filename);
+$filemtime = filemtime($run_filenames['data']);
 if(false === $filemtime) {
-  syslog(LOG_ERR, sprintf('Unable to get run-file stats: %s', $run_filename));
+  syslog(LOG_ERR, sprintf('Unable to get run data file stats: %s', $run_filenames['data']));
   http_response_code(500);
   die('ko');
 }
 
-if(time() >= ($filemtime + GRIOTTE_DELAY)) {
+if($_SERVER['REQUEST_TIME'] >= ($filemtime + GRIOTTE_NODE_DELAY)) {
   syslog(LOG_DEBUG, sprintf('Stale readings for griotte #%s (last modified at %s): saving new data', $griotte_nb, date('Y-m-d H:i:s', $filemtime)));
-  goto insert;
+  goto buffer;
 }
 
 
@@ -96,7 +103,65 @@ syslog(LOG_DEBUG, sprintf('Readings still valid for griotte #%s (last modified a
 goto finish;
 
 
-insert:
+
+/**
+ * This section appends the incoming readings to a temporary flat file (low resource disk writes, often called),
+ * so that they can be inserted into the DBs in batches (higher resource disk writes, seldom called)
+ */
+buffer:
+
+// also creates the file if it does not exist
+$buffer_handle = fopen($buffer_filename, 'a');
+if(!$buffer_handle) {
+  syslog(LOG_ERR, sprintf('Unable to open buffer file: %s', $buffer_filename));
+  http_response_code(500);
+  die('ko');
+}
+
+$buffer_data = array_merge([$_SERVER['REQUEST_TIME'], $griotte_nb], $readings);
+if(!fwrite($buffer_handle, implode("\t", $buffer_data).PHP_EOL)) {
+  syslog(LOG_ERR, sprintf('Unable to write to buffer file: %s', $buffer_filename));
+  http_response_code(500);
+  die('ko');
+}
+
+unset($buffer_data);
+fclose($buffer_handle);
+$filemtime = filemtime($run_filenames['buffer']);
+
+if(false === $filemtime) {
+  if(!touch($run_filenames['data'], $_SERVER['REQUEST_TIME'])) {
+    syslog(LOG_ERR, sprintf('Unable to create run data file: %s', $run_filenames['data']));
+    http_response_code(500);
+    die('ko');
+  }
+}
+
+if($_SERVER['REQUEST_TIME'] >= ($filemtime + GRIOTTE_BUFFER_DELAY)) {
+  syslog(LOG_DEBUG, sprintf('Buffer is ready (last modified at %s): committing data', date('Y-m-d H:i:s', $filemtime)));
+  goto commit;
+}
+
+if(!touch($run_filenames['data'], $_SERVER['REQUEST_TIME'])) {
+  syslog(LOG_ERR, sprintf('Unable to create run data file: %s', $run_filenames['data']));
+  http_response_code(500);
+  die('ko');
+}
+
+goto finish;
+
+
+
+/**
+ * This section reads the buffer flat file, copies its contents into SQL DBs and clears the buffer file
+ */
+commit:
+
+$buffer_handle = fopen($buffer_filename, 'r');
+if(!filesize($buffer_filename)) {
+  syslog(LOG_ERR, sprintf('Buffer file is empty: %s', $buffer_filename));
+  goto finish;
+}
 
 // let's save every reading in a faily database, as well as a giant all-time database
 // and also in the databases from the previous and the next day to avoid timezone issues
@@ -111,11 +176,17 @@ $db_filenames = [
   sprintf('%s/readings.sq3', GRIOTTE_FOLDER),
 ];
 
-foreach($db_filenames as $_db_filename) {
+// prepare the DB file handles and SQL statements
+foreach($db_filenames as $_db_idx => $_db_filename) {
   $new_db = !file_exists($_db_filename);
 
-  if(!file_exists(dirname($_db_filename))) {
-    mkdir(dirname($_db_filename), 0775, true);
+  $_dirname = dirname($_db_filename);
+  if(!file_exists($_dirname)) {
+    if(!mkdir($_dirname, 0775, true)) {
+      syslog(LOG_ERR, sprintf('Unable to create DB folder structure: %s', $_dirname));
+      http_response_code(500);
+      die('ko');
+    }
   }
 
   try {
@@ -127,7 +198,6 @@ foreach($db_filenames as $_db_filename) {
     http_response_code(500);
     die('ko');
   }
-
 
   if($new_db) {
     chmod($_db_filename, 0664);
@@ -157,27 +227,61 @@ foreach($db_filenames as $_db_filename) {
     }
   }
 
-
   $sql = <<<SQL
-  INSERT INTO sensor_reading (node, hpa, hum, temp, iaq, eco2, voc)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO sensor_reading (created_at, node, hpa, hum, temp, iaq, eco2, voc)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   SQL;
 
   try {
-    $insert = $db->prepare($sql);
-    $insert->execute(array_merge([$griotte_nb], $readings));
+    $inserts[$_db_idx] = $db->prepare($sql);
   }
   catch(Exception $e) {
     syslog(LOG_ERR, sprintf('L%d: %s%s%s', __LINE__, $e->getMessage(), PHP_EOL, $e->getTraceAsString()));
     http_response_code(500);
     die('ko');
   }
-
-  syslog(LOG_INFO, sprintf('Data appended after %0.3fms to %s', microtime(true)-GRIOTTE_STARTTIME, basename($_db_filename)));
 }
 
-if(!touch($run_filename)) {
-  syslog(LOG_ERR, sprintf('Unable to create file: %s', $run_filename));
+// insert the readings into each DB
+do {
+  $buffer_readings = trim(fgets($buffer_handle));
+  if(!$buffer_readings) {
+    break;
+  }
+
+  $readings = explode("\t", $buffer_readings);
+  $time = array_shift($readings);
+  $griotte_nb = array_shift($readings);
+
+  foreach($db_filenames as $_db_idx => $_db_filename) {
+    try {
+      $inserts[$_db_idx]->execute(array_merge([$time, $griotte_nb], $readings));
+    }
+    catch(Exception $e) {
+      syslog(LOG_ERR, sprintf('L%d: %s%s%s', __LINE__, $e->getMessage(), PHP_EOL, $e->getTraceAsString()));
+      http_response_code(500);
+      die('ko');
+    }
+
+    syslog(LOG_INFO, sprintf('Data appended after %0.3fms for griotte #%s to %s', microtime(true)-GRIOTTE_STARTTIME, $griotte_nb, basename($_db_filename)));
+  }
+} while($readings);
+
+fclose($buffer_handle);
+if(!fopen($buffer_filename, 'w')) {
+  syslog(LOG_ERR, sprintf('Unable to truncate buffer file: %s', $buffer_filename));
+  http_response_code(500);
+  die('ko');
+}
+
+if(!touch($run_filenames['buffer'], $_SERVER['REQUEST_TIME'])) {
+  syslog(LOG_ERR, sprintf('Unable to create run buffer file: %s', $run_filenames['data']));
+  http_response_code(500);
+  die('ko');
+}
+
+if(!touch($run_filenames['data'], $_SERVER['REQUEST_TIME'])) {
+  syslog(LOG_ERR, sprintf('Unable to create run data file: %s', $run_filenames['data']));
   http_response_code(500);
   die('ko');
 }
@@ -185,6 +289,10 @@ if(!touch($run_filename)) {
 goto finish;
 
 
+
+/**
+ * End of the script
+ */
 finish:
 exit;
 
