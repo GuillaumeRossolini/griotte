@@ -319,8 +319,8 @@ But with this strategy:
 The web server buffers any incoming HTTP requests as well (because it is a single PHP process by design). Therefore, readings that may have come in while the commit was in progress, are processed quickly as soon as the commit is done. So, even the delay caused by the commit is irrelevant to the timestamps.
 
 After all is said and done, I am uncertain that my buffer here does any good, performance-wise. Used to be a few hundred ms every 6s, now it's 8s every 5m. Then umbers look about the same? But at lease I can observe more easily what is happening with a few easy commands :
-* `watch cat buffer.txt `
-* `watch wc -l buffer.txt`
+* `watch cat buffer.csv`
+* `watch wc -l buffer.csv`
 * `watch ls -alh buffer.csv readings.sq3 run/* db/v1/*/*/$(date +%Y-%m-%d)*`
 
 
