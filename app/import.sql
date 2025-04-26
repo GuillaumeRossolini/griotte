@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS sensor_reading (
     id INTEGER PRIMARY KEY,
-    created_at INTEGER DEFAULT CURRENT_TIMESTAMP,
+    created_at TEXT,
     node INTEGER,
     hpa INTEGER,
     hum INTEGER,
@@ -30,6 +30,6 @@ DELETE FROM csv_import;
 .import |csv2sqlite csv_import
 
 INSERT INTO sensor_reading (created_at, node, hpa, hum, temp, iaq, eco2, voc)
-SELECT created_at, node, hpa, hum, temp, iaq, eco2, voc
+SELECT datetime(created_at, 'unixepoch'), node, hpa, hum, temp, iaq, eco2, voc
 FROM csv_import
 ORDER BY node, created_at;

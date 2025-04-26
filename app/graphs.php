@@ -132,7 +132,8 @@ foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $res) {
 }
 
 if(!$overview) {
-  ?><h1><?php echo html('No data for %s', $date_filter) ?></h1><?php
+  syslog(LOG_ERR, sprintf('No data for %s to %s in %s', $start_utc->format('Y-m-d H:i:s'), $end_utc->format('Y-m-d H:i:s'), $db_filename));
+  ?><h1><?php echo html('No data for %s', $start_local->format('Y-m-d')) ?></h1><?php
   return;
 }
 
@@ -262,6 +263,8 @@ $rooms = [];
 $labels = [];
 $titles = [];
 foreach($overview as $node_key => $node_average) {
+  $rooms[$node_key] = [];
+
   $stmt->execute([
     $node_average['node'],
     $start_utc->format('Y-m-d H:i:s'),
@@ -274,6 +277,10 @@ foreach($overview as $node_key => $node_average) {
     $rooms[$node_key][$created_at] = array_map('intval', $res);
     $t = new DateTimeImmutable($created_at, $tz_utc);
     $labels[$node_key][] = $t->setTimezone($tz_local)->format('H:i:s');
+  }
+
+  if(empty($rooms[$node_key])) {
+    continue;
   }
 
   reset($rooms[$node_key]);

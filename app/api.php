@@ -177,7 +177,7 @@ $db_filenames = [
 ];
 
 $sql_import = sprintf(
-  file_get_contents('./import.sql'),
+  file_get_contents(__DIR__.'/import.sql'),
   $buffer_filename
 );
 
@@ -204,9 +204,12 @@ foreach($db_filenames as $_db_idx => $_db_filename) {
     escapeshellarg($_db_filename)
   );
 
+  // syslog(LOG_DEBUG, sprintf('%s:L%d: command: %s', __FILE__, __LINE__, $shellcmd));
+
   $output = null;
   $res = null;
   exec($shellcmd, $output, $res);
+  // syslog(LOG_DEBUG, sprintf('%s:L%d: exit %d: %s', __FILE__, __LINE__, $res, json_encode($output)));
   if(0 !== $res) {
     syslog(LOG_ERR, sprintf('Unable to import data into %s: %s', $_db_filename, json_encode($output)));
     http_response_code(500);
