@@ -259,11 +259,11 @@ SQL;
 
 $stmt = $db->prepare($sql);
 
-$rooms = [];
+$sensors = [];
 $labels = [];
 $titles = [];
 foreach($overview as $node_key => $node_average) {
-  $rooms[$node_key] = [];
+  $sensors[$node_key] = [];
 
   $stmt->execute([
     $node_average['node'],
@@ -274,24 +274,24 @@ foreach($overview as $node_key => $node_average) {
   foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $res) {
     $created_at = $res['created_at'];
     unset($res['created_at']);
-    $rooms[$node_key][$created_at] = array_map('intval', $res);
+    $sensors[$node_key][$created_at] = array_map('intval', $res);
     $t = new DateTimeImmutable($created_at, $tz_utc);
     $labels[$node_key][] = $t->setTimezone($tz_local)->format('H:i:s');
   }
 
-  if(empty($rooms[$node_key])) {
+  if(empty($sensors[$node_key])) {
     continue;
   }
 
-  reset($rooms[$node_key]);
-  $earliest = (new DateTimeImmutable(key($rooms[$node_key]), $tz_utc))
+  reset($sensors[$node_key]);
+  $earliest = (new DateTimeImmutable(key($sensors[$node_key]), $tz_utc))
     ->setTimezone($tz_local);
 
-  end($rooms[$node_key]);
-  $latest = (new DateTimeImmutable(key($rooms[$node_key]), $tz_utc))
+  end($sensors[$node_key]);
+  $latest = (new DateTimeImmutable(key($sensors[$node_key]), $tz_utc))
     ->setTimezone($tz_local);
 
-  reset($rooms[$node_key]);
+  reset($sensors[$node_key]);
 
   $titles[$node_key] = sprintf(
     'Room "%s" on %s between %s and %s',
@@ -316,7 +316,7 @@ foreach($overview as $node_key => $node_average) {
           {
             type: 'line',
             label: <?php echo json_encode($config['label']) ?>,
-            data: <?php echo json_encode(array_map('intval', array_column($rooms[$node_key], $field))) ?>,
+            data: <?php echo json_encode(array_map('intval', array_column($sensors[$node_key], $field))) ?>,
             borderWidth: 1,
             weight: 1,
             order: <?php echo json_encode($zindex--) ?>,
@@ -328,7 +328,7 @@ foreach($overview as $node_key => $node_average) {
           {
             type: 'line',
             label: 'Barometric (hPA-920)',
-            data: <?php echo json_encode(array_map('intval', array_column($rooms[$node_key], 'hpa'))) ?>,
+            data: <?php echo json_encode(array_map('intval', array_column($sensors[$node_key], 'hpa'))) ?>,
             borderWidth: 1,
             order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'left',
@@ -338,7 +338,7 @@ foreach($overview as $node_key => $node_average) {
           {
             type: 'line',
             label: 'Temperature (°C)',
-            data: <?php echo json_encode(array_map('intval', array_column($rooms[$node_key], 'temp'))) ?>,
+            data: <?php echo json_encode(array_map('intval', array_column($sensors[$node_key], 'temp'))) ?>,
             borderWidth: 1,
             order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'left',
@@ -348,7 +348,7 @@ foreach($overview as $node_key => $node_average) {
           {
             type: 'line',
             label: 'Humidity (%)',
-            data: <?php echo json_encode(array_map('intval', array_column($rooms[$node_key], 'hum'))) ?>,
+            data: <?php echo json_encode(array_map('intval', array_column($sensors[$node_key], 'hum'))) ?>,
             borderWidth: 1,
             order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'left',
