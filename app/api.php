@@ -53,7 +53,7 @@ if(!preg_match('~says:\s*(\d+)[^;]+;\s*(\d+)[^;]+;\s*(\d+)[^;]+;\s*([0-9.]+)[^;]
 
 
 array_shift($readings);
-$griotte_nb = intval($griotte_nb);
+$griotte_nb = floatval($griotte_nb);
 $readings = array_map('floatval', $readings);
 
 http_response_code(200);
@@ -209,7 +209,7 @@ foreach($db_filenames as $_db_idx => $_db_filename) {
   $output = null;
   $res = null;
   exec($shellcmd, $output, $res);
-  // syslog(LOG_DEBUG, sprintf('%s:L%d: exit %d: %s', __FILE__, __LINE__, $res, json_encode($output)));
+  syslog(LOG_DEBUG, sprintf('Import result to %s was: exit %d, output: %s', $_db_filename, $res, json_encode($output)));
   if(0 !== $res) {
     syslog(LOG_ERR, sprintf('Unable to import data into %s: %s', $_db_filename, json_encode($output)));
     http_response_code(500);
