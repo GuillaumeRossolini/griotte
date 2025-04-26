@@ -23,8 +23,8 @@ CREATE TEMPORARY TABLE IF NOT EXISTS csv_import (
 
 DELETE FROM csv_import;
 
-.headers off
 .mode csv
+.headers off
 .nullvalue NULL
 
 .import |csv2sqlite csv_import

@@ -38,7 +38,6 @@ const int LED = 8;
 String output;
 char outBuffer[100];
 unsigned char base64[256];
-unsigned int base64_length;
 byte iaqAddress = 0; // address 0 is n/a
 
 void errLeds(void);
@@ -87,6 +86,7 @@ void setup(void)
   while (!Serial);
   Serial.println();
   Serial.println("Hi!");
+  Serial.println(BUILD_ID);
 
 #if defined(ESP32)
   Serial.println("This is ESP32");
@@ -146,6 +146,7 @@ void setup(void)
   // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG
   // ERROR | MESH_STATUS | REMOTE | DEBUG
   mesh.setDebugMsgTypes(ERROR | REMOTE | DEBUG);
+  // mesh.setDebugMsgTypes(ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG);
   mesh.init(MESH_PREFIX, MESH_PASSWORD, (uint16_t) MESH_PORT, WIFI_AP_STA, (uint8_t) MESH_CHANNEL, (uint8_t) MESH_HIDDEN, (uint8_t) MESH_MAXCONN);
   mesh.onReceive(&onReceivedCallback);
   mesh.onNewConnection(&onNewConnectionCallback);
@@ -156,7 +157,6 @@ void setup(void)
 
   currentNode = mesh.getNodeId();
   Serial.printf("I am node #%u\n", currentNode);
-  Serial.println(BUILD_ID);
 
 #if defined(ESP32)
   mesh.sendBroadcast("Hi, ESP32 starting up");
@@ -309,7 +309,7 @@ void errLeds(String &errmsg)
 void onReceivedCallback(uint32_t from, String &msg) {
   int receivedAt = millis();
 
-  Serial.printf("Received from #%u: %s\n", from, msg.c_str());
+  // Serial.printf("Received from #%u: %s\n", from, msg.c_str());
 
 #if defined(ESP32)
   if(MESH_ROOT_NODE == currentNode && getlocalIP() != myIP) {
@@ -320,20 +320,19 @@ void onReceivedCallback(uint32_t from, String &msg) {
   if(MESH_ROOT_NODE == currentNode && myIP.toString() != "0.0.0.0") {
     digitalWrite(LED, LOW);
 
-    base64_length = encode_base64((unsigned char *) msg.c_str(), msg.length(), base64);
+    encode_base64((unsigned char *) msg.c_str(), msg.length(), base64);
 
     String payload = "";
     StaticJsonDocument<256> doc;
     doc["msg"] = base64;
     serializeJson(doc, payload);
 
-    //serializeJson(doc, Serial);
-    //Serial.println();
-    //Serial.printf("Dbg: size=%u, payload=%s\n", payload.length(), payload.c_str());
-
     char payloadBuffer[200];
     sprintf(payloadBuffer, "data=%s&uptime=%u", payload.c_str(), receivedAt);
     payload = String(payloadBuffer);
+
+    Serial.println();
+    Serial.printf("Dbg: size=%u, payload=%s\n", payload.length(), payload.c_str());
 
     char userAgent[100];
     sprintf(userAgent, "%s/%u", HTTP_USERAGENT, from);
@@ -353,13 +352,6 @@ void onReceivedCallback(uint32_t from, String &msg) {
     http.beginBody();
     http.print(payload);
     http.endRequest();
-
-/*
-    Serial.printf(
-      "Forwarded readings (%so) from #%u in %dms\n",
-      String(payload.length()), from, timeSpent
-    );
-*/
 
 /*
     int statusCode = http.responseStatusCode();
