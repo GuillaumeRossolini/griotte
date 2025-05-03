@@ -25,7 +25,7 @@ const String MESH_ROOT_HOST = "root.griotte.home";
 const String STATION_SSID = "home_ssid";
 const String STATION_PASSWORD = "home_passwd";
 
-const String HTTP_HOST      = "pihole-gr";
+const char   HTTP_ADDR[]    = "192.168.1.14";
 const int    HTTP_PORT      = 8080;
 const String HTTP_PATH      = "/griotte/";
 const String HTTP_METHOD    = "POST";
@@ -35,7 +35,6 @@ const int LED = 8;
 #endif
 
 
-String output;
 char outBuffer[100];
 unsigned char base64[256];
 byte iaqAddress = 0; // address 0 is n/a
@@ -53,6 +52,8 @@ char temperatureBuffer[10];
 char mIaqBuffer[10];
 char mCo2Buffer[10];
 char mVocBuffer[10];
+char jsonBuffer[300];
+char payloadBuffer[200];
 
 byte detectIaqSensor(void);
 void checkIaqSensorStatus(void);
@@ -70,6 +71,9 @@ void onNodeDelayReceived(uint32_t, int32_t); // Callback that gets called when a
 
 uint32_t currentNode;
 unsigned long timeTrigger;
+unsigned long lastReadData = 0;
+static int sensorFailCount = 0;
+static const int SENSOR_FAIL_THRESHOLD = 3;
 
 
 #if defined(ESP32)
@@ -194,35 +198,67 @@ void loop(void)
   if(0 != iaqAddress) {
     checkIaqSensorStatus();
 
-    if (iaqSensor.run(timeTrigger)) { // If new data is available
+    if(iaqSensor.run(timeTrigger)) { // If new data is available
+      lastReadData = timeTrigger;
+      sensorFailCount = 0;
 
-      if(0 == iaqSensor.iaqAccuracy) {
+      dtostrf(iaqSensor.pressure, 6, 0, mPressureBuffer);
+      dtostrf(iaqSensor.humidity, 3, 0, mHumidityBuffer);
+      dtostrf(iaqSensor.temperature, 3, 0, temperatureBuffer);
+
+      if(0 != iaqSensor.iaqAccuracy) {
+        dtostrf(iaqSensor.staticIaq, 4, 1, mIaqBuffer);
+        dtostrf(iaqSensor.co2Equivalent, 5, 0, mCo2Buffer);
+        dtostrf(iaqSensor.breathVocEquivalent, 3, 2, mVocBuffer);
+      }
+      else {
         sprintf(
           outBuffer,
           "Calibrating the sensor for%ss...",
           dtostrf(timeTrigger/1000, 4, 0, mTimeBuffer)
         );
+
+        Serial.println(outBuffer);
         //mesh.sendBroadcast(outBuffer);
+        dtostrf(0.0, 4, 1, mIaqBuffer);
+        dtostrf(0.0, 5, 0, mCo2Buffer);
+        dtostrf(0.0, 3, 2, mVocBuffer);
       }
-      else {
-        sprintf(
-          outBuffer,
-          "%s hPa;%s%% (humidity);%s °C; %s IAQ;%s ppm (eCO2); %s VOC",
-          String(dtostrf(iaqSensor.pressure, 6, 0, mPressureBuffer)),
-          String(dtostrf(iaqSensor.humidity, 3, 0, mHumidityBuffer)),
-          String(dtostrf(iaqSensor.temperature, 3, 0, temperatureBuffer)),
-          String(dtostrf(iaqSensor.staticIaq, 4, 1, mIaqBuffer)),
-          String(dtostrf(iaqSensor.co2Equivalent, 5, 0, mCo2Buffer)),
-          String(dtostrf(iaqSensor.breathVocEquivalent, 3, 2, mVocBuffer))
-        );
 
-        if(MESH_ROOT_NODE != currentNode) {
-          mesh.sendBroadcast(outBuffer);
-        }
+      sprintf(
+        outBuffer,
+        "%s hPa;%s%% (humidity);%s °C; %s IAQ;%s ppm (eCO2); %s VOC; %d iAQ accuracy",
+        mPressureBuffer, mHumidityBuffer, temperatureBuffer, mIaqBuffer, mCo2Buffer, mVocBuffer, iaqSensor.iaqAccuracy
+      );
 
+      if(MESH_ROOT_NODE != currentNode) {
+        mesh.sendBroadcast(outBuffer);
       }
 
       Serial.println(outBuffer);
+    }
+    else if(timeTrigger - lastReadData < 3*1100) {
+      // never mind, sensor has values about every 3 seconds
+    }
+    else if(0 == lastReadData && timeTrigger < 5*60*1100) {
+      // never mind, calibrating probably
+    }
+    else if(0 == lastReadData) {
+      sprintf(outBuffer, "No data for%ss...", dtostrf(timeTrigger/1000, 4, 0, mTimeBuffer));
+      Serial.println(outBuffer);
+    }
+    else if(timeTrigger < 50*1000) {
+      // never mind, give it more time?
+    }
+    else {
+      sensorFailCount++;
+      Serial.printf("Sensor read failed %d times in a row\n", sensorFailCount);
+      if(SENSOR_FAIL_THRESHOLD < sensorFailCount) {
+        sprintf(outBuffer, "Sensor unresponsive. Rebooting...");
+        Serial.println(outBuffer);
+        // delay(500);
+        ESP.restart();  // or soft-reset just the sensor if possible
+      }
     }
   }
 #endif
@@ -260,29 +296,29 @@ void checkIaqSensorStatus(void)
 {
   if (iaqSensor.status != BSEC_OK) {
     if (iaqSensor.status < BSEC_OK) {
-      output = "BSEC error code : " + String(iaqSensor.status);
-      Serial.println(output);
-      errLeds(output); /* Halt in case of failure */
+      sprintf(outBuffer, "BSEC error code : %d", iaqSensor.status);
+      Serial.println(outBuffer);
+      errLeds(outBuffer); /* Halt in case of failure */
     } else {
-      output = "BSEC warning code : " + String(iaqSensor.status);
-      Serial.println(output);
+      sprintf(outBuffer, "BSEC warning code : %d", iaqSensor.status);
+      Serial.println(outBuffer);
     }
   }
 
   if (iaqSensor.bme680Status != BME680_OK) {
     if (iaqSensor.bme680Status < BME680_OK) {
-      output = "BME680 error code : " + String(iaqSensor.bme680Status);
-      Serial.println(output);
-      errLeds(output); /* Halt in case of failure */
+      sprintf(outBuffer, "BME680 error code : %d", iaqSensor.bme680Status);
+      Serial.println(outBuffer);
+      errLeds(outBuffer); /* Halt in case of failure */
     } else {
-      output = "BME680 warning code : " + String(iaqSensor.bme680Status);
-      Serial.println(output);
+      sprintf(outBuffer, "BME680 warning code : %d", iaqSensor.bme680Status);
+      Serial.println(outBuffer);
     }
   }
 }
 #endif
 
-void errLeds(String &errmsg)
+void errLeds(char *errmsg)
 {
   mesh.sendBroadcast(errmsg);
   mesh.update();
@@ -322,22 +358,19 @@ void onReceivedCallback(uint32_t from, String &msg) {
 
     encode_base64((unsigned char *) msg.c_str(), msg.length(), base64);
 
-    String payload = "";
     StaticJsonDocument<256> doc;
     doc["msg"] = base64;
-    serializeJson(doc, payload);
+    serializeJson(doc, jsonBuffer);
 
-    char payloadBuffer[200];
-    sprintf(payloadBuffer, "data=%s&uptime=%u", payload.c_str(), receivedAt);
-    payload = String(payloadBuffer);
+    sprintf(payloadBuffer, "data=%s&uptime=%u", jsonBuffer, receivedAt);
 
     Serial.println();
-    Serial.printf("Dbg: size=%u, payload=%s\n", payload.length(), payload.c_str());
+    Serial.printf("Dbg: size=%u, payload=%s\n", strlen(payloadBuffer), payloadBuffer);
 
     char userAgent[100];
     sprintf(userAgent, "%s/%u", HTTP_USERAGENT, from);
 
-    HttpClient http = HttpClient(wifi, HTTP_HOST.c_str(), HTTP_PORT);
+    HttpClient http = HttpClient(wifi, HTTP_ADDR, HTTP_PORT);
 
     http.setHttpResponseTimeout((int) 100);
     http.setHttpWaitForDataDelay((int) 200);
@@ -348,10 +381,11 @@ void onReceivedCallback(uint32_t from, String &msg) {
     http.sendHeader("User-Agent", userAgent);
     http.sendHeader("Connection", "close");
     http.sendHeader("Content-Type", "application/x-www-form-urlencoded");
-    http.sendHeader("Content-Length", payload.length());
+    http.sendHeader("Content-Length", strlen(payloadBuffer));
     http.beginBody();
-    http.print(payload);
+    http.print(payloadBuffer);
     http.endRequest();
+    http.stop();
 
 /*
     int statusCode = http.responseStatusCode();
@@ -359,14 +393,14 @@ void onReceivedCallback(uint32_t from, String &msg) {
 
     if(200 == statusCode) {
       Serial.printf(
-        "Forwarded readings (%so) from #%u in %dms\n",
-        String(payload.length()), from, timeSpent
+        "Forwarded readings (%do) from #%u in %dms\n",
+        strlen(payloadBuffer), from, timeSpent
       );
     }
     else {
       Serial.printf(
-        "Failed (probably) to forward data from #%u in %dms: status %s\n",
-        from, timeSpent, String(statusCode)
+        "Failed (probably) to forward data from #%u in %dms: status %d\n",
+        from, timeSpent, statusCode
       );
     }
 */
