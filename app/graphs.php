@@ -47,7 +47,7 @@ unset($date_filter, $match);
 </script>
 
 <?php
-$db_filename = sprintf('/home/pi/griotte/db/v1/%d/%s/%s.sq3', $start_local->format('Y'), $start_local->format('m-F'), $start_local->format('Y-m-d'));
+$db_filename = sprintf(GRIOTTE_FOLDER.'/db/v1/%d/%s/%s.sq3', $start_local->format('Y'), $start_local->format('m-F'), $start_local->format('Y-m-d'));
 if(!file_exists($db_filename)) {
   syslog(LOG_ERR, sprintf('DB file does not exist: %s', $db_filename));
   echo html('DB file does not exist: %s', basename($db_filename));
@@ -72,34 +72,30 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 // attic OLD: 3764971370
 
-$sql = <<<SQL
+$config_filename = GRIOTTE_FOLDER.'/app/config.ini';
+$config = parse_ini_file($config_filename, true);
+
+$when_nodes = [];
+foreach($config['node_labels'] as $_idx => $_val) {
+  $_idx = explode('_', $_idx);
+  array_shift($_idx);
+  $when_nodes[] = sprintf("WHEN '%s' THEN '%s'", implode(' ', $_idx), $_val);
+}
+$when_floors = [];
+foreach($config['node_floors'] as $_idx => $_val) {
+  $_idx = explode('_', $_idx);
+  array_shift($_idx);
+  $when_floors[] = sprintf("WHEN '%s' THEN %d", implode(' ', $_idx), $_val);
+}
+
+$sql_tpl = <<<SQL
 SELECT node
   , CASE node
-    WHEN 1364776260 THEN 'cellar'
-    WHEN 3764979380 THEN 'heater'
-    WHEN 3385449031 THEN 'kitchen'
-    WHEN 695062617 THEN 'salon'
-    WHEN 1547794758 THEN 'bedroom'
-    WHEN 694510667 THEN 'guest room'
-    WHEN 695063509 THEN 'dressing'
-    WHEN 3764978189 THEN 'library'
-    WHEN 3385105714 THEN 'attic'
-    WHEN 3385445268 THEN 'office'
-    WHEN 3385445319 THEN 'playroom'
+    %s
     ELSE node
   END AS node_lbl
   , CASE node
-    WHEN 1364776260 THEN -1
-    WHEN 3764979380 THEN 0
-    WHEN 3385449031 THEN 0
-    WHEN 695062617 THEN 0
-    WHEN 1547794758 THEN 1
-    WHEN 694510667 THEN 1
-    WHEN 695063509 THEN 1
-    WHEN 3764978189 THEN 1
-    WHEN 3385105714 THEN 2
-    WHEN 3385445268 THEN 2
-    WHEN 3385445319 THEN 2
+    %s
     ELSE 3
   END AS floor
   , COUNT(1) AS nb
@@ -108,7 +104,7 @@ SELECT node
   , ROUND(AVG(hpa/100), 2) AS avg_hpa
   , ROUND(AVG(hum), 2) AS avg_hum
   , ROUND(AVG(temp), 2) AS avg_temp
-  , ROUND(AVG(iaq*10), 2) AS avg_iaq
+  , CASE WHEN ROUND(AVG(iaq/5), 2) > 100 THEN 100 ELSE ROUND(AVG(iaq/5), 2) END AS avg_iaq
   , ROUND(AVG(eco2), 2) AS avg_eco2
   , ROUND(AVG(voc*100), 2) AS avg_voc
 FROM sensor_reading
@@ -117,6 +113,8 @@ WHERE true
 GROUP BY node_lbl
 ORDER BY floor, node_lbl
 SQL;
+
+$sql = sprintf($sql_tpl, implode(PHP_EOL, $when_nodes), implode(PHP_EOL, $when_floors));
 
 $stmt = $db->prepare($sql);
 $stmt->execute([
@@ -138,7 +136,6 @@ if(!$overview) {
 }
 
 $datasets = [
-  'iaq'  => ['label' => 'IAQ',  'color' => '#96f'],
   'eco2' => ['label' => 'eCO²', 'color' => '#ff9f40'],
   'voc'  => ['label' => 'VOC',  'color' => '#4bc0c0'],
 ];
@@ -169,22 +166,22 @@ $zindex = 0;
     data: {
       labels: <?php echo json_encode($labels) ?>,
       datasets: [
-        <?php foreach($datasets as $field => $config): ?>
+        <?php foreach($datasets as $field => $ds): ?>
         {
           type: 'bar',
-          label: <?php echo json_encode($config['label']) ?>,
+          label: <?php echo json_encode($ds['label']) ?>,
           data: <?php echo json_encode(array_map('intval', array_column($overview, 'avg_'.$field))) ?>,
           borderWidth: 1,
           weight: 1,
           order: <?php echo json_encode($zindex--) ?>,
           yAxisID: 'right',
-          borderColor: <?php echo json_encode($config['color']) ?>,
-          backgroundColor: <?php echo json_encode($config['color']) ?>
+          borderColor: <?php echo json_encode($ds['color']) ?>,
+          backgroundColor: <?php echo json_encode($ds['color']) ?>
         },
         <?php endforeach; ?>
         {
           type: 'line',
-          label: 'Barometric (hPA)',
+          label: 'Barometric [hPA]',
           data: <?php echo json_encode(array_map('intval', array_column($overview, 'avg_hpa'))) ?>,
           borderWidth: 1,
           order: <?php echo json_encode($zindex--) ?>,
@@ -194,7 +191,7 @@ $zindex = 0;
         },
         {
           type: 'line',
-          label: 'Temperature (°C)',
+          label: 'Temperature [°C]',
           data: <?php echo json_encode(array_map('intval', array_column($overview, 'avg_temp'))) ?>,
           borderWidth: 1,
           order: <?php echo json_encode($zindex--) ?>,
@@ -204,13 +201,23 @@ $zindex = 0;
         },
         {
           type: 'line',
-          label: 'Humidity (%)',
+          label: 'Humidity [%]',
           data: <?php echo json_encode(array_map('intval', array_column($overview, 'avg_hum'))) ?>,
           borderWidth: 1,
           order: <?php echo json_encode($zindex--) ?>,
           yAxisID: 'left',
           borderColor: '#0000ff',
           backgroundColor: '#0000ff'
+        },
+        {
+          type: 'line',
+          label: 'IAQ [%]',
+          data: <?php echo json_encode(array_map('intval', array_column($overview, 'avg_iaq'))) ?>,
+          borderWidth: 1,
+          order: <?php echo json_encode($zindex--) ?>,
+          yAxisID: 'left',
+          borderColor: '#96f',
+          backgroundColor: '#96f'
         }
       ]
     },
@@ -244,10 +251,10 @@ $zindex = 0;
 
 $sql = <<<SQL
 SELECT created_at
-  , ROUND(hpa/100, 2)-920 AS hpa
+  , CASE WHEN hpa <= 0 THEN 0 ELSE ROUND(hpa/100, 2)-920 END AS hpa
   , ROUND(hum, 2) AS hum
   , ROUND(temp, 2) AS temp
-  , ROUND(iaq*10, 2) AS iaq
+  , CASE WHEN ROUND(iaq/5, 2) > 100 THEN 100 ELSE ROUND(iaq/5, 2) END AS iaq
   , ROUND(eco2, 2) AS eco2
   , ROUND(voc*100, 2) AS voc
 FROM sensor_reading
@@ -312,22 +319,22 @@ foreach($overview as $node_key => $node_average) {
       data: {
         labels: <?php echo json_encode($labels[$node_key]) ?>,
         datasets: [
-          <?php foreach($datasets as $field => $config): ?>
+          <?php foreach($datasets as $field => $ds): ?>
           {
             type: 'line',
-            label: <?php echo json_encode($config['label']) ?>,
+            label: <?php echo json_encode($ds['label']) ?>,
             data: <?php echo json_encode(array_map('intval', array_column($sensors[$node_key], $field))) ?>,
             borderWidth: 1,
             weight: 1,
             order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'right',
-            borderColor: <?php echo json_encode($config['color']) ?>,
-            backgroundColor: <?php echo json_encode($config['color']) ?>
+            borderColor: <?php echo json_encode($ds['color']) ?>,
+            backgroundColor: <?php echo json_encode($ds['color']) ?>
           },
           <?php endforeach; ?>
           {
             type: 'line',
-            label: 'Barometric (hPA-920)',
+            label: 'Barometric [hPA-920]',
             data: <?php echo json_encode(array_map('intval', array_column($sensors[$node_key], 'hpa'))) ?>,
             borderWidth: 1,
             order: <?php echo json_encode($zindex--) ?>,
@@ -337,7 +344,7 @@ foreach($overview as $node_key => $node_average) {
           },
           {
             type: 'line',
-            label: 'Temperature (°C)',
+            label: 'Temperature [°C]',
             data: <?php echo json_encode(array_map('intval', array_column($sensors[$node_key], 'temp'))) ?>,
             borderWidth: 1,
             order: <?php echo json_encode($zindex--) ?>,
@@ -347,13 +354,23 @@ foreach($overview as $node_key => $node_average) {
           },
           {
             type: 'line',
-            label: 'Humidity (%)',
+            label: 'Humidity [%]',
             data: <?php echo json_encode(array_map('intval', array_column($sensors[$node_key], 'hum'))) ?>,
             borderWidth: 1,
             order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'left',
             borderColor: '#0000ff',
             backgroundColor: '#0000ff'
+          },
+          {
+            type: 'line',
+            label: 'IAQ [%]',
+            data: <?php echo json_encode(array_map('intval', array_column($sensors[$node_key], 'iaq'))) ?>,
+            borderWidth: 1,
+            order: <?php echo json_encode($zindex--) ?>,
+            yAxisID: 'left',
+            borderColor: '#96f',
+            backgroundColor: '#96f'
           }
         ]
       },

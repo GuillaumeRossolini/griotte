@@ -11,7 +11,7 @@
 #include <ArduinoHttpClient.h>
 #endif
 
-const char BUILD_ID[] = "This is build LOREM IPSUM";
+const char BUILD_ID[] = "This is build 2025-05-08 12:51";
 const char MESH_PREFIX[] = "mesh_ssid";
 const char MESH_PASSWORD[] = "mesh_passwd";
 const int MESH_PORT = 5555;
@@ -114,7 +114,7 @@ void setup(void)
 
     sprintf(
       outBuffer,
-      "BSEC library version %d.%d.%d.%d",
+      "BSEC library version %u.%u.%u.%u",
       iaqSensor.version.major,
       iaqSensor.version.minor,
       iaqSensor.version.major_bugfix,
@@ -204,17 +204,17 @@ void loop(void)
       lastReadData = timeTrigger;
       sensorFailCount = 0;
 
-      snprintf(mPressureBuffer, sizeof(mPressureBuffer), "%d", iaqSensor.pressure);
-      snprintf(mHumidityBuffer, sizeof(mHumidityBuffer), "%d", iaqSensor.humidity);
-      snprintf(temperatureBuffer, sizeof(temperatureBuffer), "%d", iaqSensor.temperature);
+      snprintf(mPressureBuffer, sizeof(mPressureBuffer), "%.0f", iaqSensor.pressure);
+      snprintf(mHumidityBuffer, sizeof(mHumidityBuffer), "%.0f", iaqSensor.humidity);
+      snprintf(temperatureBuffer, sizeof(temperatureBuffer), "%.0f", iaqSensor.temperature);
 
       if(0 != iaqSensor.iaqAccuracy) {
         snprintf(mIaqBuffer, sizeof(mIaqBuffer), "%.1f", iaqSensor.staticIaq);
-        snprintf(mCo2Buffer, sizeof(mCo2Buffer), "%d", iaqSensor.co2Equivalent);
+        snprintf(mCo2Buffer, sizeof(mCo2Buffer), "%.0f", iaqSensor.co2Equivalent);
         snprintf(mVocBuffer, sizeof(mVocBuffer), "%.2f", iaqSensor.breathVocEquivalent);
       }
       else {
-        snprintf(mTimeBuffer, sizeof(mTimeBuffer), "%d", timeTrigger/1000);
+        snprintf(mTimeBuffer, sizeof(mTimeBuffer), "%u", timeTrigger/1000);
 
         sprintf(
           outBuffer,
@@ -225,13 +225,13 @@ void loop(void)
         Serial.println(outBuffer);
         //mesh.sendBroadcast(outBuffer);
         snprintf(mIaqBuffer, sizeof(mIaqBuffer), "%.1f", 0.0);
-        snprintf(mCo2Buffer, sizeof(mCo2Buffer), "%d", 0.0);
+        snprintf(mCo2Buffer, sizeof(mCo2Buffer), "%.0f", 0.0);
         snprintf(mVocBuffer, sizeof(mVocBuffer), "%.2f", 0.0);
       }
 
       sprintf(
         outBuffer,
-        "%s hPa;%s%% (humidity);%s °C; %s IAQ;%s ppm (eCO2); %s VOC; %d iAQ accuracy",
+        "%s hPa;%s%% (humidity);%s °C; %s IAQ;%s ppm (eCO2); %s VOC; %u iAQ accuracy",
         mPressureBuffer, mHumidityBuffer, temperatureBuffer, mIaqBuffer, mCo2Buffer, mVocBuffer,
         iaqSensor.iaqAccuracy
       );
@@ -250,7 +250,7 @@ void loop(void)
       // never mind, calibrating probably
     }
     else if(0 == lastReadData) {
-      snprintf(mTimeBuffer, sizeof(mTimeBuffer), "%d", timeTrigger/1000);
+      snprintf(mTimeBuffer, sizeof(mTimeBuffer), "%u", timeTrigger/1000);
       sprintf(outBuffer, "No data for %ss...", mTimeBuffer);
       Serial.println(outBuffer);
     }
@@ -259,7 +259,7 @@ void loop(void)
     }
     else {
       sensorFailCount++;
-      Serial.printf("Sensor read failed %d times in a row\n", sensorFailCount);
+      Serial.printf("Sensor read failed %u times in a row\n", sensorFailCount);
       if(SENSOR_FAIL_THRESHOLD < sensorFailCount) {
         sprintf(outBuffer, "Sensor unresponsive. Rebooting...");
         Serial.println(outBuffer);
@@ -303,22 +303,22 @@ void checkIaqSensorStatus(void)
 {
   if (iaqSensor.status != BSEC_OK) {
     if (iaqSensor.status < BSEC_OK) {
-      sprintf(outBuffer, "BSEC error code : %d", iaqSensor.status);
+      sprintf(outBuffer, "BSEC error code : %u", iaqSensor.status);
       Serial.println(outBuffer);
       errLeds(outBuffer); /* Halt in case of failure */
     } else {
-      sprintf(outBuffer, "BSEC warning code : %d", iaqSensor.status);
+      sprintf(outBuffer, "BSEC warning code : %u", iaqSensor.status);
       Serial.println(outBuffer);
     }
   }
 
   if (iaqSensor.bme680Status != BME680_OK) {
     if (iaqSensor.bme680Status < BME680_OK) {
-      sprintf(outBuffer, "BME680 error code : %d", iaqSensor.bme680Status);
+      sprintf(outBuffer, "BME680 error code : %u", iaqSensor.bme680Status);
       Serial.println(outBuffer);
       errLeds(outBuffer); /* Halt in case of failure */
     } else {
-      sprintf(outBuffer, "BME680 warning code : %d", iaqSensor.bme680Status);
+      sprintf(outBuffer, "BME680 warning code : %u", iaqSensor.bme680Status);
       Serial.println(outBuffer);
     }
   }
@@ -400,13 +400,13 @@ void onReceivedCallback(uint32_t from, String &msg) {
 
     if(200 == statusCode) {
       Serial.printf(
-        "Forwarded readings (%do) from #%u in %dms\n",
+        "Forwarded readings (%uo) from #%u in %ums\n",
         strlen(payloadBuffer), from, timeSpent
       );
     }
     else {
       Serial.printf(
-        "Failed (probably) to forward data from #%u in %dms: status %d\n",
+        "Failed (probably) to forward data from #%u in %ums: status %u\n",
         from, timeSpent, statusCode
       );
     }
