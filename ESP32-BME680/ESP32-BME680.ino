@@ -11,25 +11,25 @@
 #include <ArduinoHttpClient.h>
 #endif
 
-const String BUILD_ID      = "This is build LOREM IPSUM";
-const String MESH_PREFIX   = "mesh_ssid";
-const String MESH_PASSWORD = "mesh_passwd";
-const int MESH_PORT    = 5555;
+const char BUILD_ID[] = "This is build LOREM IPSUM";
+const char MESH_PREFIX[] = "mesh_ssid";
+const char MESH_PASSWORD[] = "mesh_passwd";
+const int MESH_PORT = 5555;
 const int MESH_CHANNEL = 2;
-const int MESH_HIDDEN  = 1;
+const int MESH_HIDDEN = 1;
 const int MESH_MAXCONN = 100;
 const int MESH_ROOT_NODE = 1002444205;  // esp32-c3
-const String MESH_ROOT_HOST = "root.griotte.home";
+const char MESH_ROOT_HOST[] = "root.griotte.home";
 
 #if defined(ESP32)
-const String STATION_SSID = "home_ssid";
-const String STATION_PASSWORD = "home_passwd";
+const char STATION_SSID[] = "home_ssid";
+const char STATION_PASSWORD[] = "home_passwd";
 
-const char   HTTP_ADDR[]    = "192.168.1.1";
-const int    HTTP_PORT      = 8080;
-const String HTTP_PATH      = "/griotte/";
-const String HTTP_METHOD    = "POST";
-const String HTTP_USERAGENT = "Griotte";
+const char HTTP_ADDR[] = "192.168.1.1"; // raspberrypi zero
+const int  HTTP_PORT = 8080;
+const char HTTP_PATH[] = "/griotte/";
+const char HTTP_METHOD[] = "POST";
+const char HTTP_USERAGENT[] = "Griotte";
 
 const int LED = 8;
 #endif
@@ -204,17 +204,17 @@ void loop(void)
       lastReadData = timeTrigger;
       sensorFailCount = 0;
 
-      snprintf(mPressureBuffer, sizeof(mPressureBuffer), "%.0f", iaqSensor.pressure);
-      snprintf(mHumidityBuffer, sizeof(mHumidityBuffer), "%.0f", iaqSensor.humidity);
-      snprintf(temperatureBuffer, sizeof(temperatureBuffer), "%.0f", iaqSensor.temperature);
+      snprintf(mPressureBuffer, sizeof(mPressureBuffer), "%d", iaqSensor.pressure);
+      snprintf(mHumidityBuffer, sizeof(mHumidityBuffer), "%d", iaqSensor.humidity);
+      snprintf(temperatureBuffer, sizeof(temperatureBuffer), "%d", iaqSensor.temperature);
 
       if(0 != iaqSensor.iaqAccuracy) {
         snprintf(mIaqBuffer, sizeof(mIaqBuffer), "%.1f", iaqSensor.staticIaq);
-        snprintf(mCo2Buffer, sizeof(mCo2Buffer), "%.0f", iaqSensor.co2Equivalent);
+        snprintf(mCo2Buffer, sizeof(mCo2Buffer), "%d", iaqSensor.co2Equivalent);
         snprintf(mVocBuffer, sizeof(mVocBuffer), "%.2f", iaqSensor.breathVocEquivalent);
       }
       else {
-        snprintf(mTimeBuffer, sizeof(mTimeBuffer), "%.0f", timeTrigger/1000);
+        snprintf(mTimeBuffer, sizeof(mTimeBuffer), "%d", timeTrigger/1000);
 
         sprintf(
           outBuffer,
@@ -225,7 +225,7 @@ void loop(void)
         Serial.println(outBuffer);
         //mesh.sendBroadcast(outBuffer);
         snprintf(mIaqBuffer, sizeof(mIaqBuffer), "%.1f", 0.0);
-        snprintf(mCo2Buffer, sizeof(mCo2Buffer), "%.0f", 0.0);
+        snprintf(mCo2Buffer, sizeof(mCo2Buffer), "%d", 0.0);
         snprintf(mVocBuffer, sizeof(mVocBuffer), "%.2f", 0.0);
       }
 
@@ -250,7 +250,7 @@ void loop(void)
       // never mind, calibrating probably
     }
     else if(0 == lastReadData) {
-      snprintf(mTimeBuffer, sizeof(mTimeBuffer), "%.0f", timeTrigger/1000);
+      snprintf(mTimeBuffer, sizeof(mTimeBuffer), "%d", timeTrigger/1000);
       sprintf(outBuffer, "No data for %ss...", mTimeBuffer);
       Serial.println(outBuffer);
     }
