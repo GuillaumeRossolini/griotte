@@ -45,15 +45,14 @@ $msg = sprintf(
 syslog(LOG_INFO, sprintf('Received payload: %s', $msg));
 
 
-if(!preg_match('~says:\s*(\d+)[^;]+;\s*(\d+)[^;]+;\s*(\d+)[^;]+;\s*([0-9.]+)[^;]+;\s*(\d+)[^;]+;\s*([0-9.]+)[^;]+(?:;\s*([0-9.]+).+)?$~', $msg, $readings)) {
+if(!preg_match('~says:\s*(\d+)[^;]+;\s*(\d+)[^;]+;\s*(\d+)[^;]+;\s*([0-9.]+)[^;]+;\s*(\d+)[^;]+;\s*([0-9.]+)[^;]+.*$~', $msg, $readings)) {
   syslog(LOG_ERR, sprintf('Unable to match reading pattern'));
   http_response_code(400);
   die('ko');
 }
 
 
-array_shift($readings); // full pattern
-array_pop($readings); // iAQ accuracy
+$readings = array_slice($readings, 1, 6);
 $griotte_nb = floatval($griotte_nb);
 $readings = array_map('floatval', $readings);
 

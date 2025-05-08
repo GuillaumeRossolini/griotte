@@ -25,7 +25,7 @@ const String MESH_ROOT_HOST = "root.griotte.home";
 const String STATION_SSID = "home_ssid";
 const String STATION_PASSWORD = "home_passwd";
 
-const char   HTTP_ADDR[]    = "192.168.1.14";
+const char   HTTP_ADDR[]    = "192.168.1.1";
 const int    HTTP_PORT      = 8080;
 const String HTTP_PATH      = "/griotte/";
 const String HTTP_METHOD    = "POST";
@@ -199,36 +199,41 @@ void loop(void)
     checkIaqSensorStatus();
 
     if(iaqSensor.run(timeTrigger)) { // If new data is available
+      Serial.printf("[Heap before run] Free: %u\n", ESP.getFreeHeap());
+
       lastReadData = timeTrigger;
       sensorFailCount = 0;
 
-      dtostrf(iaqSensor.pressure, 6, 0, mPressureBuffer);
-      dtostrf(iaqSensor.humidity, 3, 0, mHumidityBuffer);
-      dtostrf(iaqSensor.temperature, 3, 0, temperatureBuffer);
+      snprintf(mPressureBuffer, sizeof(mPressureBuffer), "%.0f", iaqSensor.pressure);
+      snprintf(mHumidityBuffer, sizeof(mHumidityBuffer), "%.0f", iaqSensor.humidity);
+      snprintf(temperatureBuffer, sizeof(temperatureBuffer), "%.0f", iaqSensor.temperature);
 
       if(0 != iaqSensor.iaqAccuracy) {
-        dtostrf(iaqSensor.staticIaq, 4, 1, mIaqBuffer);
-        dtostrf(iaqSensor.co2Equivalent, 5, 0, mCo2Buffer);
-        dtostrf(iaqSensor.breathVocEquivalent, 3, 2, mVocBuffer);
+        snprintf(mIaqBuffer, sizeof(mIaqBuffer), "%.1f", iaqSensor.staticIaq);
+        snprintf(mCo2Buffer, sizeof(mCo2Buffer), "%.0f", iaqSensor.co2Equivalent);
+        snprintf(mVocBuffer, sizeof(mVocBuffer), "%.2f", iaqSensor.breathVocEquivalent);
       }
       else {
+        snprintf(mTimeBuffer, sizeof(mTimeBuffer), "%.0f", timeTrigger/1000);
+
         sprintf(
           outBuffer,
-          "Calibrating the sensor for%ss...",
-          dtostrf(timeTrigger/1000, 4, 0, mTimeBuffer)
+          "Calibrating the sensor for %ss...",
+          mTimeBuffer
         );
 
         Serial.println(outBuffer);
         //mesh.sendBroadcast(outBuffer);
-        dtostrf(0.0, 4, 1, mIaqBuffer);
-        dtostrf(0.0, 5, 0, mCo2Buffer);
-        dtostrf(0.0, 3, 2, mVocBuffer);
+        snprintf(mIaqBuffer, sizeof(mIaqBuffer), "%.1f", 0.0);
+        snprintf(mCo2Buffer, sizeof(mCo2Buffer), "%.0f", 0.0);
+        snprintf(mVocBuffer, sizeof(mVocBuffer), "%.2f", 0.0);
       }
 
       sprintf(
         outBuffer,
         "%s hPa;%s%% (humidity);%s °C; %s IAQ;%s ppm (eCO2); %s VOC; %d iAQ accuracy",
-        mPressureBuffer, mHumidityBuffer, temperatureBuffer, mIaqBuffer, mCo2Buffer, mVocBuffer, iaqSensor.iaqAccuracy
+        mPressureBuffer, mHumidityBuffer, temperatureBuffer, mIaqBuffer, mCo2Buffer, mVocBuffer,
+        iaqSensor.iaqAccuracy
       );
 
       if(MESH_ROOT_NODE != currentNode) {
@@ -236,6 +241,7 @@ void loop(void)
       }
 
       Serial.println(outBuffer);
+      Serial.printf("[Heap after run] Free: %u\n", ESP.getFreeHeap());
     }
     else if(timeTrigger - lastReadData < 3*1100) {
       // never mind, sensor has values about every 3 seconds
@@ -244,7 +250,8 @@ void loop(void)
       // never mind, calibrating probably
     }
     else if(0 == lastReadData) {
-      sprintf(outBuffer, "No data for%ss...", dtostrf(timeTrigger/1000, 4, 0, mTimeBuffer));
+      snprintf(mTimeBuffer, sizeof(mTimeBuffer), "%.0f", timeTrigger/1000);
+      sprintf(outBuffer, "No data for %ss...", mTimeBuffer);
       Serial.println(outBuffer);
     }
     else if(timeTrigger < 50*1000) {
@@ -419,7 +426,7 @@ void onDroppedConnectionCallback(uint32_t nodeId) {
 }
 
 void onChangedConnectionsCallback() {
-  Serial.printf("Changed mesh connections; new topology is: %s\n", mesh.subConnectionJson().c_str());
+  // Serial.printf("Changed mesh connections; new topology is: %s\n", mesh.subConnectionJson().c_str());
 }
 
 void onNodeTimeAdjustedCallback(int32_t offset) {
