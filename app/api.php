@@ -45,7 +45,19 @@ $msg = sprintf(
 syslog(LOG_INFO, sprintf('Received payload: %s', $msg));
 
 
-if(!preg_match('~says:\s*(\d+)[^;]+;\s*(\d+)[^;]+;\s*(\d+)[^;]+;\s*([0-9.]+)[^;]+;\s*(\d+)[^;]+;\s*([0-9.]+)[^;]+.*$~', $msg, $readings)) {
+$pattern = <<<EOT
+says:
+\s*(\d+)[^;]+;        # pressure
+\s*(\d+)[^;]+;        # humidity
+\s*(\d+)[^;]+;        # temperature
+\s*([0-9.]+)[^;]+     # IAQ
+\s*(\d+)[^;]+;        # CO2
+\s*([0-9.]+)[^;]+     # VOC
+(?:\s*(\d+)[^;]+;)?   # IAQ accuracy
+(?:\s*(\d+)[^;]+;)?   # free HEAP
+EOT;
+
+if(!preg_match("~$pattern~x", $msg, $readings)) {
   syslog(LOG_ERR, sprintf('Unable to match reading pattern'));
   http_response_code(400);
   die('ko');
