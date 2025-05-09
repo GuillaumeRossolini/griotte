@@ -239,9 +239,9 @@ void loop(void)
 
       sprintf(
         outBuffer,
-        "%s hPa;%s%% (humidity);%s °C; %s IAQ;%s ppm (eCO2); %s VOC; %u iAQ accuracy",
+        "%s hPa;%s%% (humidity);%s °C; %s IAQ;%s ppm (eCO2); %s VOC; %u iAQ accuracy; %u free HEAP",
         mPressureBuffer, mHumidityBuffer, temperatureBuffer, mIaqBuffer, mCo2Buffer, mVocBuffer,
-        iaqSensor.iaqAccuracy
+        iaqSensor.iaqAccuracy, ESP.getFreeHeap()
       );
 
       if(MESH_ROOT_NODE != currentNode) {
