@@ -1,17 +1,22 @@
+#include "griotte_creds.h"
 #include "painlessMesh.h"
 
-#if defined(ESP8266)
+#ifdef ESP8266
 #include "bsec.h"
 #include <Wire.h>
 #endif
 
-#if defined(ESP32)
+#ifdef ESP32
 #include "base64.hpp"
 #include <wifi.h>
 #include <ArduinoHttpClient.h>
 #endif
 
-const char BUILD_ID[] = "This is build 2025-05-08 12:51";
+#ifndef HAS_GRIOTTE_BUILD_ID
+const char GRIOTTE_BUILD_ID[] = "This is build LOREM IPSUM";
+#endif
+
+#ifndef HAS_MESH_CREDS
 const char MESH_PREFIX[] = "mesh_ssid";
 const char MESH_PASSWORD[] = "mesh_passwd";
 const int MESH_PORT = 5555;
@@ -20,21 +25,24 @@ const int MESH_HIDDEN = 1;
 const int MESH_MAXCONN = 100;
 const int MESH_ROOT_NODE = 1002444205;  // esp32-c3
 const char MESH_ROOT_HOST[] = "root.griotte.home";
+#endif
 
-#if defined(ESP32)
+#ifdef ESP32
+#ifndef HAS_STATION_CREDS
 const char STATION_SSID[] = "home_ssid";
 const char STATION_PASSWORD[] = "home_passwd";
+#endif
 
+#ifndef HAS_HTTP_CREDS
 const char HTTP_ADDR[] = "192.168.1.1"; // raspberrypi zero
 const int  HTTP_PORT = 8080;
 const char HTTP_PATH[] = "/griotte/";
 const char HTTP_METHOD[] = "POST";
 const char HTTP_USERAGENT[] = "Griotte";
-
-const int LED = 8;
+#endif
 #endif
 
-
+const int LED = 8;
 char outBuffer[100];
 unsigned char base64[256];
 byte iaqAddress = 0; // address 0 is n/a
@@ -42,7 +50,7 @@ byte iaqAddress = 0; // address 0 is n/a
 void errLeds(void);
 
 
-#if defined(ESP8266)
+#ifdef ESP8266
 Bsec iaqSensor;
 
 char mTimeBuffer[10];
@@ -76,7 +84,7 @@ static int sensorFailCount = 0;
 static const int SENSOR_FAIL_THRESHOLD = 3;
 
 
-#if defined(ESP32)
+#ifdef ESP32
 WiFiClient wifi;
 
 IPAddress getlocalIP();
@@ -90,20 +98,20 @@ void setup(void)
   while (!Serial);
   Serial.println();
   Serial.println("Hi!");
-  Serial.println(BUILD_ID);
+  Serial.println(GRIOTTE_BUILD_ID);
 
-#if defined(ESP32)
+#ifdef ESP32
   Serial.println("This is ESP32");
   pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH);
 #endif
-#if defined(ESP8266)
+#ifdef ESP8266
   Serial.println("This is ESP8266");
   Wire.begin();
 #endif
 
 
-#if defined(ESP8266)
+#ifdef ESP8266
   // detect the IAQ sensor
   iaqAddress = detectIaqSensor();
 
@@ -162,18 +170,18 @@ void setup(void)
   currentNode = mesh.getNodeId();
   Serial.printf("I am node #%u\n", currentNode);
 
-#if defined(ESP32)
+#ifdef ESP32
   mesh.sendBroadcast("Hi, ESP32 starting up");
 #endif
-#if defined(ESP8266)
+#ifdef ESP8266
   mesh.sendBroadcast("Hi, ESP8266 starting up");
 #endif
 
-#if defined(ESP8266)
+#ifdef ESP8266
   mesh.setContainsRoot(true);
 #endif
 
-#if defined(ESP32)
+#ifdef ESP32
   if(currentNode != MESH_ROOT_NODE) {
     Serial.println("I am not the root node");
     mesh.setContainsRoot(true);
@@ -194,7 +202,7 @@ void loop(void)
   timeTrigger = millis();
   mesh.update();
 
-#if defined(ESP8266)
+#ifdef ESP8266
   if(0 != iaqAddress) {
     checkIaqSensorStatus();
 
@@ -273,7 +281,7 @@ void loop(void)
 }
 
 
-#if defined(ESP8266)
+#ifdef ESP8266
 byte detectIaqSensor(void) {
   byte address;
 
@@ -354,7 +362,7 @@ void onReceivedCallback(uint32_t from, String &msg) {
 
   // Serial.printf("Received from #%u: %s\n", from, msg.c_str());
 
-#if defined(ESP32)
+#ifdef ESP32
   if(MESH_ROOT_NODE == currentNode && getlocalIP() != myIP) {
     myIP = getlocalIP();
     Serial.println("My IP is now: " + myIP.toString());
@@ -435,7 +443,7 @@ void onNodeTimeAdjustedCallback(int32_t offset) {
 void onNodeDelayReceived(uint32_t nodeId, int32_t delay) {
 }
 
-#if defined(ESP32)
+#ifdef ESP32
 IPAddress getlocalIP() {
   // IPAddress(mesh.getAPIP());
   return IPAddress(mesh.getStationIP());
