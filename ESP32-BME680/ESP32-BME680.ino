@@ -312,7 +312,6 @@ void checkIaqSensorStatus(void)
   if (iaqSensor.status != BSEC_OK) {
     if (iaqSensor.status < BSEC_OK) {
       sprintf(outBuffer, "BSEC error code : %u", iaqSensor.status);
-      Serial.println(outBuffer);
       errLeds(outBuffer); /* Halt in case of failure */
     } else {
       sprintf(outBuffer, "BSEC warning code : %u", iaqSensor.status);
@@ -323,7 +322,6 @@ void checkIaqSensorStatus(void)
   if (iaqSensor.bme680Status != BME680_OK) {
     if (iaqSensor.bme680Status < BME680_OK) {
       sprintf(outBuffer, "BME680 error code : %u", iaqSensor.bme680Status);
-      Serial.println(outBuffer);
       errLeds(outBuffer); /* Halt in case of failure */
     } else {
       sprintf(outBuffer, "BME680 warning code : %u", iaqSensor.bme680Status);
@@ -335,6 +333,7 @@ void checkIaqSensorStatus(void)
 
 void errLeds(char *errmsg)
 {
+  Serial.println(errmsg);
   mesh.sendBroadcast(errmsg);
   mesh.update();
   delay(100);
