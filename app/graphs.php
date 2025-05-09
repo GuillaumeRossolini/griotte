@@ -107,6 +107,8 @@ SELECT node
   , CASE WHEN ROUND(AVG(iaq/5), 2) > 100 THEN 100 ELSE ROUND(AVG(iaq/5), 2) END AS avg_iaq
   , ROUND(AVG(eco2), 2) AS avg_eco2
   , ROUND(AVG(voc*100), 2) AS avg_voc
+  , ROUND(AVG(accuracy/3*100), 2) AS avg_accuracy
+  , ROUND(AVG(heap), 2) AS avg_heap
 FROM sensor_reading
 WHERE true
   AND created_at BETWEEN ? AND ?
@@ -257,6 +259,8 @@ SELECT created_at
   , CASE WHEN ROUND(iaq/5, 2) > 100 THEN 100 ELSE ROUND(iaq/5, 2) END AS iaq
   , ROUND(eco2, 2) AS eco2
   , ROUND(voc*100, 2) AS voc
+  , ROUND(accuracy/3*100, 2) AS accuracy
+  , ROUND(heap, 2) AS heap
 FROM sensor_reading
 WHERE true
   AND node = ?

@@ -47,14 +47,14 @@ syslog(LOG_INFO, sprintf('Received payload: %s', $msg));
 
 $pattern = <<<EOT
 says:
-\s*(\d+)[^;]+;        # pressure
-\s*(\d+)[^;]+;        # humidity
-\s*(\d+)[^;]+;        # temperature
-\s*([0-9.]+)[^;]+     # IAQ
-\s*(\d+)[^;]+;        # CO2
-\s*([0-9.]+)[^;]+     # VOC
-(?:\s*(\d+)[^;]+;)?   # IAQ accuracy
-(?:\s*(\d+)[^;]+;)?   # free HEAP
+\s*(\d+)\s+[^;]+        # pressure
+;\s*(\d+).\s+[^;]+      # humidity
+;\s*(\d+)\s+[^;]+       # temperature
+;\s*([0-9.]+)\s+[^;]+   # IAQ
+;\s*(\d+)\s+[^;]+       # eCO2
+;\s*([0-9.]+)\s[^;]+    # VOC
+(?:;\s*(\d+)\s+[^;]+)?  # IAQ accuracy
+(?:;\s*(\d+)\s+[^;]+)?  # free HEAP
 EOT;
 
 if(!preg_match("~$pattern~x", $msg, $readings)) {
@@ -64,9 +64,10 @@ if(!preg_match("~$pattern~x", $msg, $readings)) {
 }
 
 
-$readings = array_slice($readings, 1, 6);
-$griotte_nb = floatval($griotte_nb);
+$readings = array_slice($readings, 1, 8);
 $readings = array_map('floatval', $readings);
+$readings = array_pad($readings, 8, 'NULL');
+$griotte_nb = floatval($griotte_nb);
 
 http_response_code(200);
 echo 'ok';
