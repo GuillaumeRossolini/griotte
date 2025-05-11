@@ -1,5 +1,5 @@
 #define HAS_GRIOTTE_BUILD_ID
-const char GRIOTTE_BUILD_ID[] = "This is build 2025-05-08 12:51";
+const char GRIOTTE_BUILD_ID[] = "This is build LOREM IPSUM";
 
 #define HAS_MESH_CREDS
 const char MESH_PREFIX[] = "mesh_ssid";

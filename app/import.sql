@@ -33,6 +33,8 @@ DELETE FROM csv_import;
 
 .import |csv2sqlite csv_import
 
+SELECT 'Importing ' || COUNT(1) || ' rows...' FROM csv_import;
+
 INSERT INTO sensor_reading (created_at, node, hpa, hum, temp, iaq, eco2, voc, accuracy, heap)
 SELECT datetime(created_at, 'unixepoch'), node, hpa, hum, temp, iaq, eco2, voc, accuracy, heap
 FROM csv_import

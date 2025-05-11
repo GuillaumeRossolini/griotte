@@ -12,36 +12,6 @@
 #include <ArduinoHttpClient.h>
 #endif
 
-#ifndef HAS_GRIOTTE_BUILD_ID
-const char GRIOTTE_BUILD_ID[] = "This is build LOREM IPSUM";
-#endif
-
-#ifndef HAS_MESH_CREDS
-const char MESH_PREFIX[] = "mesh_ssid";
-const char MESH_PASSWORD[] = "mesh_passwd";
-const int MESH_PORT = 5555;
-const int MESH_CHANNEL = 2;
-const int MESH_HIDDEN = 1;
-const int MESH_MAXCONN = 100;
-const int MESH_ROOT_NODE = 1002444205;  // esp32-c3
-const char MESH_ROOT_HOST[] = "root.griotte.home";
-#endif
-
-#ifdef ESP32
-#ifndef HAS_STATION_CREDS
-const char STATION_SSID[] = "home_ssid";
-const char STATION_PASSWORD[] = "home_passwd";
-#endif
-
-#ifndef HAS_HTTP_CREDS
-const char HTTP_ADDR[] = "192.168.1.1"; // raspberrypi zero
-const int  HTTP_PORT = 8080;
-const char HTTP_PATH[] = "/griotte/";
-const char HTTP_METHOD[] = "POST";
-const char HTTP_USERAGENT[] = "Griotte";
-#endif
-#endif
-
 const int LED = 8;
 char outBuffer[100];
 unsigned char base64[256];
@@ -195,6 +165,31 @@ void setup(void)
   }
 #endif
 }
+
+/*
+# iaqSensor.staticIaq
+  Range: 0.0 to 500.0
+  Meaning: Represents long-term air quality; lower is better.
+    0–50: Excellent
+    51–100: Good
+    101–150: Lightly polluted
+    151–200: Moderately polluted
+    201–250: Heavily polluted
+    251–500: Severely polluted
+
+# iaqSensor.co2Equivalent
+  Range: ~400 ppm to ~10,000+ ppm
+  Meaning: Equivalent estimated CO₂ level based on VOCs (not actual CO₂ sensor!)
+    400–1000 ppm: normal indoor
+    1000–2000 ppm: drowsiness
+    2000–5000 ppm: headaches, poor air
+
+# iaqSensor.breathVocEquivalent
+  Range: 0.0 to ~10.0+
+  Meaning: Breath VOC (volatile organic compound) estimate in ppm (e.g., ethanol equivalents)
+    ~0.5 ppm is typical for fresh air indoors
+    1.0 ppm indicates increasing VOC levels
+*/
 
 
 void loop(void)
