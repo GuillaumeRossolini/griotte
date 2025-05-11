@@ -239,6 +239,19 @@ void loop(void)
         iaqSensor.iaqAccuracy, ESP.getFreeHeap()
       );
 
+      if(2 <= iaqSensor.iaqAccuracy
+        && (10000 < iaqSensor.co2Equivalent
+          || 10.0 < iaqSensor.breathVocEquivalent
+          || 500 < iaqSensor.staticIaq)) {
+        Serial.printf(
+          "Wild sensor values: co2Equivalent=%s, breathVocEquivalent=%s, staticIaq=%s\n",
+          mCo2Buffer, mVocBuffer, mIaqBuffer
+        );
+        Serial.println(outBuffer);
+        Serial.printf("[Heap after run] Free: %u\n", ESP.getFreeHeap());
+        ESP.restart();
+      }
+
       if(MESH_ROOT_NODE != currentNode) {
         mesh.sendBroadcast(outBuffer);
       }
