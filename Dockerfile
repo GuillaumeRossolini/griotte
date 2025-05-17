@@ -1,7 +1,7 @@
 FROM php:8.3.21-cli-alpine3.20
 
 RUN apk update \
-    apk add sqlite
+    && apk add sqlite
 
 WORKDIR /var/www
 
