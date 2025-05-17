@@ -189,11 +189,6 @@ $db_filenames = [
   sprintf('%s/readings.sq3', GRIOTTE_FOLDER),
 ];
 
-$sql_import = sprintf(
-  file_get_contents(__DIR__.'/import.sql'),
-  $buffer_filename
-);
-
 // prepare the DB file handles and SQL statements
 foreach($db_filenames as $_db_idx => $_db_filename) {
   $new_db = !file_exists($_db_filename);
@@ -213,8 +208,8 @@ foreach($db_filenames as $_db_idx => $_db_filename) {
   }
 
   $shellcmd = sprintf(
-    'echo %s | sqlite3 %s',
-    escapeshellarg($sql_import),
+    'cat %s | sqlite3 %s',
+    escapeshellarg(__DIR__.'/import.sql'),
     escapeshellarg($_db_filename)
   );
 
@@ -225,7 +220,7 @@ foreach($db_filenames as $_db_idx => $_db_filename) {
   exec($shellcmd, $output, $res);
   trace(LOG_DEBUG, 'Import result to %s was: exit %d, output: %s', $_db_filename, $res, json_encode($output));
   if(0 !== $res) {
-    trace(LOG_ERR, 'Unable to import data into %s: %s', $_db_filename, json_encode($output));
+    trace(LOG_ERR, 'Unable to import data into %s: %s; cmd was: %s', $_db_filename, json_encode($output), $shellcmd);
     http(500, 'ko');
     exit;
   }
