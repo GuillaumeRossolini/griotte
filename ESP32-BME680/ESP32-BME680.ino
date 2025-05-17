@@ -1,4 +1,4 @@
-#include "griotte_creds.h"
+#include "griotte_creds_mar.h"
 #include "painlessMesh.h"
 
 #ifdef ESP8266
@@ -30,11 +30,14 @@ char temperatureBuffer[10];
 char mIaqBuffer[10];
 char mCo2Buffer[10];
 char mVocBuffer[10];
-char jsonBuffer[300];
-char payloadBuffer[200];
 
 byte detectIaqSensor(void);
 void checkIaqSensorStatus(void);
+#endif
+
+#ifdef ESP32
+char jsonBuffer[200];
+char payloadBuffer[250];
 #endif
 
 
@@ -127,7 +130,14 @@ void setup(void)
 
   // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG
   // ERROR | MESH_STATUS | REMOTE | DEBUG
+
+#ifdef ESP32
+  mesh.setDebugMsgTypes(ERROR | MESH_STATUS | CONNECTION | REMOTE | DEBUG);
+#endif
+#ifdef ESP8266
   mesh.setDebugMsgTypes(ERROR | REMOTE | DEBUG);
+#endif
+
   // mesh.setDebugMsgTypes(ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG);
   mesh.init(MESH_PREFIX, MESH_PASSWORD, (uint16_t) MESH_PORT, WIFI_AP_STA, (uint8_t) MESH_CHANNEL, (uint8_t) MESH_HIDDEN, (uint8_t) MESH_MAXCONN);
   mesh.onReceive(&onReceivedCallback);
@@ -138,7 +148,7 @@ void setup(void)
   mesh.onNodeDelayReceived(&onNodeDelayReceived);
 
   currentNode = mesh.getNodeId();
-  Serial.printf("I am node #%u\n", currentNode);
+  Serial.printf("I am node #%u in the mesh\n", currentNode);
 
 #ifdef ESP32
   mesh.sendBroadcast("Hi, ESP32 starting up");
@@ -160,7 +170,7 @@ void setup(void)
     Serial.println("I am the root node");
     mesh.setRoot(true);
     mesh.stationManual(STATION_SSID, STATION_PASSWORD);
-    mesh.setHostname(MESH_ROOT_HOST.c_str());
+    mesh.setHostname(MESH_ROOT_HOST);
     //mesh.sendBroadcast("Root node is now: "+currentNode);
   }
 #endif
@@ -202,7 +212,8 @@ void loop(void)
     checkIaqSensorStatus();
 
     if(iaqSensor.run(timeTrigger)) { // If new data is available
-      Serial.printf("[Heap before run] Free: %u\n", ESP.getFreeHeap());
+      digitalWrite(LED, LOW);
+      // Serial.printf("[Heap before run] Free: %u\n", ESP.getFreeHeap());
 
       lastReadData = timeTrigger;
       sensorFailCount = 0;
@@ -248,7 +259,7 @@ void loop(void)
           mCo2Buffer, mVocBuffer, mIaqBuffer
         );
         Serial.println(outBuffer);
-        Serial.printf("[Heap after run] Free: %u\n", ESP.getFreeHeap());
+        // Serial.printf("[Heap after run] Free: %u\n", ESP.getFreeHeap());
         ESP.restart();
       }
 
@@ -257,7 +268,8 @@ void loop(void)
       }
 
       Serial.println(outBuffer);
-      Serial.printf("[Heap after run] Free: %u\n", ESP.getFreeHeap());
+      digitalWrite(LED, HIGH);
+      // Serial.printf("[Heap after run] Free: %u\n", ESP.getFreeHeap());
     }
     else if(timeTrigger - lastReadData < 3*1100) {
       // never mind, sensor has values about every 3 seconds
@@ -367,9 +379,9 @@ void errLeds(char *errmsg)
 void onReceivedCallback(uint32_t from, String &msg) {
   int receivedAt = millis();
 
-  // Serial.printf("Received from #%u: %s\n", from, msg.c_str());
-
 #ifdef ESP32
+  Serial.printf("Received from #%u: %s\n", from, msg.c_str());
+
   if(MESH_ROOT_NODE == currentNode && getlocalIP() != myIP) {
     myIP = getlocalIP();
     Serial.println("My IP is now: " + myIP.toString());
@@ -386,8 +398,8 @@ void onReceivedCallback(uint32_t from, String &msg) {
 
     sprintf(payloadBuffer, "data=%s&uptime=%u", jsonBuffer, receivedAt);
 
-    Serial.println();
-    Serial.printf("Dbg: size=%u, payload=%s\n", strlen(payloadBuffer), payloadBuffer);
+    //Serial.println();
+    //Serial.printf("Dbg: size=%u, payload=%s\n", strlen(payloadBuffer), payloadBuffer);
 
     char userAgent[100];
     sprintf(userAgent, "%s/%u", HTTP_USERAGENT, from);
@@ -427,6 +439,7 @@ void onReceivedCallback(uint32_t from, String &msg) {
     }
 */
 
+    //Serial.printf("Free HEAP after onReceivedCallback: %u\n", ESP.getFreeHeap());
     digitalWrite(LED, HIGH);
   }
 #endif
