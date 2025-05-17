@@ -4,33 +4,34 @@ header('Content-Type: text/plain; charset=utf-8', true);
 
 
 if(empty($_POST['data'])) {
-  syslog(LOG_ERR, sp^rintf('Missing "data" field in the request body'));
-  http_response_code(400);
-  die('ko');
+  trace(LOG_ERR, 'Missing "data" field in the request body');
+  http(400, 'ko');
+  exit;
 }
 
 $payload = json_decode($_POST['data'], true);
 if(false === $payload) {
-  syslog(LOG_ERR, sprintf('Input data was not JSON: %s', print_r($_POST['data'], true)));
-  http_response_code(400);
-  die('ko');
+  trace(LOG_ERR, 'Input data was not JSON: %s', print_r($_POST['data'], true));
+  http(400, 'ko');
+  exit;
 }
 
 $agent_name = null;
 $griotte_nb = null;
 if(empty($_SERVER['HTTP_USER_AGENT'])) {
-  syslog(LOG_ERR, sprintf('Missing the User-Agent header: %s', json_encode($_SERVER)));
-  http_response_code(400);
-  die('ko');
+  trace(LOG_ERR, 'Missing the User-Agent header: %s', json_encode($_SERVER));
+  http(400, 'ko');
+  exit;
 }
 
-if(!preg_match('~(Griotte)/(\d+)$~', $_SERVER['HTTP_USER_AGENT'], $griotte)) {
-  syslog(LOG_ERR, sprintf('Missing the User-Agent header: %s', $_SERVER['HTTP_USER_AGENT']));
-  http_response_code(400);
-  die('ko');
+$regexp = sprintf('~(%s)/(\d+)$~', preg_quote(GRIOTTE_LABEL));
+if(!preg_match($regexp, $_SERVER['HTTP_USER_AGENT'], $griotte)) {
+  trace(LOG_ERR, 'Incorrect User-Agent header: %s (%s)', $_SERVER['HTTP_USER_AGENT'], $regexp);
+  http(400, 'ko');
+  exit;
 }
 
-// syslog(LOG_DEBUG, sprintf('Response sent after %0.3fms', microtime(true)-GRIOTTE_STARTTIME));
+// trace(LOG_DEBUG, 'Response sent after %0.3fms', microtime(true)-GRIOTTE_STARTTIME);
 
 
 list($agent_name, $griotte_nb) = explode('/', $_SERVER['HTTP_USER_AGENT']);
@@ -42,7 +43,7 @@ $msg = sprintf(
   base64_decode($payload['msg'])
 );
 
-syslog(LOG_INFO, sprintf('Received payload: %s', $msg));
+trace(LOG_INFO, 'Received payload: %s', $msg);
 
 
 $pattern = <<<EOT
@@ -58,9 +59,9 @@ says:
 EOT;
 
 if(!preg_match("~$pattern~x", $msg, $readings)) {
-  syslog(LOG_ERR, sprintf('Unable to match reading pattern'));
-  http_response_code(400);
-  die('ko');
+  trace(LOG_ERR, 'Unable to match reading pattern');
+  http(400, 'ko');
+  exit;
 }
 
 
@@ -69,20 +70,19 @@ $readings = array_map('floatval', $readings);
 $readings = array_pad($readings, 8, 'NULL');
 $griotte_nb = floatval($griotte_nb);
 
-http_response_code(200);
-echo 'ok';
+http(200, 'ok');
 
 
 if(!file_exists(GRIOTTE_RUN)) {
-  syslog(LOG_ERR, sprintf('Run folder not found: %s', GRIOTTE_RUN));
-  http_response_code(500);
-  die('ko');
+  trace(LOG_ERR, 'Run folder not found: %s', GRIOTTE_RUN);
+  http(500, 'ko');
+  exit;
 }
 
 if(!is_writable(GRIOTTE_RUN)) {
-  syslog(LOG_ERR, sprintf('Run folder not writable: %s', GRIOTTE_RUN));
-  http_response_code(500);
-  die('ko');
+  trace(LOG_ERR, 'Run folder not writable: %s', GRIOTTE_RUN);
+  http(500, 'ko');
+  exit;
 }
 
 
@@ -94,24 +94,24 @@ $run_filenames = [
 ];
 
 if(!file_exists($run_filenames['data'])) {
-  syslog(LOG_DEBUG, sprintf('No run data file for griotte #%s: saving data', $griotte_nb));
+  trace(LOG_DEBUG, 'No run data file for node #%s: saving data', $griotte_nb);
   goto buffer;
 }
 
 $filemtime = filemtime($run_filenames['data']);
 if(false === $filemtime) {
-  syslog(LOG_ERR, sprintf('Unable to get run data file stats: %s', $run_filenames['data']));
-  http_response_code(500);
-  die('ko');
+  trace(LOG_ERR, 'Unable to get run data file stats: %s', $run_filenames['data']);
+  http(500, 'ko');
+  exit;
 }
 
 if($_SERVER['REQUEST_TIME'] >= ($filemtime + GRIOTTE_NODE_DELAY)) {
-  syslog(LOG_DEBUG, sprintf('Stale readings for griotte #%s (last modified at %s): saving new data', $griotte_nb, date('Y-m-d H:i:s', $filemtime)));
+  trace(LOG_DEBUG, 'Stale readings for node #%s (last modified at %s): saving new data', $griotte_nb, date('Y-m-d H:i:s', $filemtime));
   goto buffer;
 }
 
 
-syslog(LOG_DEBUG, sprintf('Readings still valid for griotte #%s (last modified at %s): skipping new data', $griotte_nb, date('Y-m-d H:i:s', $filemtime)));
+trace(LOG_DEBUG, 'Readings still valid for node #%s (last modified at %s): skipping new data', $griotte_nb, date('Y-m-d H:i:s', $filemtime));
 
 goto finish;
 
@@ -126,16 +126,16 @@ buffer:
 // also creates the file if it does not exist
 $buffer_handle = fopen($buffer_filename, 'a');
 if(!$buffer_handle) {
-  syslog(LOG_ERR, sprintf('Unable to open buffer file: %s', $buffer_filename));
-  http_response_code(500);
-  die('ko');
+  trace(LOG_ERR, 'Unable to open buffer file: %s', $buffer_filename);
+  http(500, 'ko');
+  exit;
 }
 
 $buffer_data = array_merge([$_SERVER['REQUEST_TIME'], $griotte_nb], $readings);
 if(!fwrite($buffer_handle, implode("\t", $buffer_data).PHP_EOL)) {
-  syslog(LOG_ERR, sprintf('Unable to write to buffer file: %s', $buffer_filename));
-  http_response_code(500);
-  die('ko');
+  trace(LOG_ERR, 'Unable to write to buffer file: %s', $buffer_filename);
+  http(500, 'ko');
+  exit;
 }
 
 unset($buffer_data);
@@ -144,21 +144,21 @@ $filemtime = filemtime($run_filenames['buffer']);
 
 if(false === $filemtime) {
   if(!touch($run_filenames['data'], $_SERVER['REQUEST_TIME'])) {
-    syslog(LOG_ERR, sprintf('Unable to create run data file: %s', $run_filenames['data']));
-    http_response_code(500);
-    die('ko');
+    trace(LOG_ERR, 'Unable to create run data file: %s', $run_filenames['data']);
+    http(500, 'ko');
+    exit;
   }
 }
 
 if($_SERVER['REQUEST_TIME'] >= ($filemtime + GRIOTTE_BUFFER_DELAY)) {
-  syslog(LOG_DEBUG, sprintf('Buffer is ready (last modified at %s): committing data', date('Y-m-d H:i:s', $filemtime)));
+  trace(LOG_DEBUG, 'Buffer is ready (last modified at %s): committing data', date('Y-m-d H:i:s', $filemtime));
   goto commit;
 }
 
 if(!touch($run_filenames['data'], $_SERVER['REQUEST_TIME'])) {
-  syslog(LOG_ERR, sprintf('Unable to create run data file: %s', $run_filenames['data']));
-  http_response_code(500);
-  die('ko');
+  trace(LOG_ERR, 'Unable to create run data file: %s', $run_filenames['data']);
+  http(500, 'ko');
+  exit;
 }
 
 goto finish;
@@ -172,7 +172,7 @@ commit:
 
 $buffer_handle = fopen($buffer_filename, 'r');
 if(!filesize($buffer_filename)) {
-  syslog(LOG_ERR, sprintf('Buffer file is empty: %s', $buffer_filename));
+  trace(LOG_ERR, 'Buffer file is empty: %s', $buffer_filename);
   goto finish;
 }
 
@@ -201,13 +201,14 @@ foreach($db_filenames as $_db_idx => $_db_filename) {
   $_dirname = dirname($_db_filename);
   if(!file_exists($_dirname)) {
     if(!mkdir($_dirname, 0775, true)) {
-      syslog(LOG_ERR, sprintf('Unable to create DB folder structure: %s', $_dirname));
-      http_response_code(500);
-      die('ko');
+      trace(LOG_ERR, 'Unable to create DB folder structure: %s', $_dirname);
+      http(500, 'ko');
+      exit;
     }
   }
 
   if($new_db) {
+    touch($_db_filename);
     chmod($_db_filename, 0664);
   }
 
@@ -217,36 +218,36 @@ foreach($db_filenames as $_db_idx => $_db_filename) {
     escapeshellarg($_db_filename)
   );
 
-  // syslog(LOG_DEBUG, sprintf('%s:L%d: command: %s', __FILE__, __LINE__, $shellcmd));
+  // trace(LOG_DEBUG, '%s:L%d: command: %s', __FILE__, __LINE__, $shellcmd);
 
   $output = null;
   $res = null;
   exec($shellcmd, $output, $res);
-  syslog(LOG_DEBUG, sprintf('Import result to %s was: exit %d, output: %s', $_db_filename, $res, json_encode($output)));
+  trace(LOG_DEBUG, 'Import result to %s was: exit %d, output: %s', $_db_filename, $res, json_encode($output));
   if(0 !== $res) {
-    syslog(LOG_ERR, sprintf('Unable to import data into %s: %s', $_db_filename, json_encode($output)));
-    http_response_code(500);
-    die('ko');
+    trace(LOG_ERR, 'Unable to import data into %s: %s', $_db_filename, json_encode($output));
+    http(500, 'ko');
+    exit;
   }
 }
 
 fclose($buffer_handle);
 if(!fopen($buffer_filename, 'w')) {
-  syslog(LOG_ERR, sprintf('Unable to truncate buffer file: %s', $buffer_filename));
-  http_response_code(500);
-  die('ko');
+  trace(LOG_ERR, 'Unable to truncate buffer file: %s', $buffer_filename);
+  http(500, 'ko');
+  exit;
 }
 
 if(!touch($run_filenames['buffer'], $_SERVER['REQUEST_TIME'])) {
-  syslog(LOG_ERR, sprintf('Unable to create run buffer file: %s', $run_filenames['data']));
-  http_response_code(500);
-  die('ko');
+  trace(LOG_ERR, 'Unable to create run buffer file: %s', $run_filenames['data']);
+  http(500, 'ko');
+  exit;
 }
 
 if(!touch($run_filenames['data'], $_SERVER['REQUEST_TIME'])) {
-  syslog(LOG_ERR, sprintf('Unable to create run data file: %s', $run_filenames['data']));
-  http_response_code(500);
-  die('ko');
+  trace(LOG_ERR, 'Unable to create run data file: %s', $run_filenames['data']);
+  http(500, 'ko');
+  exit;
 }
 
 goto finish;

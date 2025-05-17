@@ -1,6 +1,12 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
-cat /home/pi/griotte/buffer.csv \
+set -eCfu
+
+buffer_filename="${GRIOTTE_FOLDER}/buffer.csv"
+
+if [ -f $buffer_filename ]; then
+  cat "$buffer_filename" \
     | sed "s/\t/,/g"
+fi
 
-touch /home/pi/griotte/buffer.csv
+touch "$buffer_filename"

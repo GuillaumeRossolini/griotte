@@ -29,7 +29,7 @@ unset($date_filter, $match);
 <html lang="en-US">
   <head>
     <meta charset="utf-8" />
-    <title><?php echo html('Griotte metrics for %s', $start_local->format('Y-m-d')) ?></title>
+    <title><?php echo html('%s metrics for %s', GRIOTTE_LABEL, $start_local->format('Y-m-d')) ?></title>
     <script src="./?script=chart-v4.4.4.js"></script>
   </head>
 <body>

@@ -8,7 +8,7 @@ define('GRIOTTE_STARTTIME', microtime(true));
 /**
  * System path of the project
  */
-define('GRIOTTE_FOLDER', realpath(__DIR__.'/..'));
+define('GRIOTTE_FOLDER', getenv('GRIOTTE_FOLDER') ?: realpath(__DIR__.'/..'));
 
 /**
  * System path of the run-files
@@ -27,3 +27,8 @@ define('GRIOTTE_NODE_DELAY', 60*1);
  * This delay is computed from a global buffer-file modified timestamp
  */
 define('GRIOTTE_BUFFER_DELAY', 60*5);
+
+/**
+ * Display name for the web app
+ */
+define('GRIOTTE_LABEL', getenv('GRIOTTE_LABEL') ?: 'Griotte');
