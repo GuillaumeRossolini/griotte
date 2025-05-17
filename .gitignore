@@ -1,1 +1,3 @@
-ESP32-BME680/griotte_creds.h
+ESP32-BME680/griotte_creds_*.h
+docker-compose.*.yml
+app/config.*.ini

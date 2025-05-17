@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+
+  griotte:
+    container_name: griotte
+    image: griotte:tmp01
+    hostname: griotte
+    ports:
+      - "80:80"
+    volumes:
+      - '/home/griotte/src/app/config.ini:/var/www/app/config.ini'
+      - '/home/griotte/src/volumes/db:/var/www/db'
+      - '/home/griotte/src/volumes/run:/var/www/run'
+    environment:
+      GRIOTTE_LABEL: Griotte
+      GRIOTTE_FOLDER: /var/www
