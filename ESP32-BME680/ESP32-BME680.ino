@@ -12,15 +12,19 @@
 #include <ArduinoHttpClient.h>
 #endif
 
-const int LED = 8;
+const byte FALSE = 0;
+const byte TRUE = 1;
 char outBuffer[100];
 unsigned char base64[256];
 byte iaqAddress = 0; // address 0 is n/a
+byte isRootReachable = FALSE;
+unsigned int nbRootUnreachable = 0;
 
 void errLeds(void);
 
 
 #ifdef ESP8266
+const int LED = LED_BUILTIN;
 Bsec iaqSensor;
 
 char mTimeBuffer[10];
@@ -36,8 +40,10 @@ void checkIaqSensorStatus(void);
 #endif
 
 #ifdef ESP32
+const int LED = 8;
 char jsonBuffer[200];
 char payloadBuffer[250];
+byte foundWifiStation = FALSE;
 #endif
 
 
@@ -57,11 +63,14 @@ static int sensorFailCount = 0;
 static const int SENSOR_FAIL_THRESHOLD = 3;
 
 
+IPAddress getMeshIP();
+IPAddress myMeshIP(0,0,0,0);
+
 #ifdef ESP32
 WiFiClient wifi;
 
-IPAddress getlocalIP();
-IPAddress myIP(0,0,0,0);
+IPAddress getWanIP();
+IPAddress myWanIP(0,0,0,0);
 #endif
 
 
@@ -73,10 +82,11 @@ void setup(void)
   Serial.println("Hi!");
   Serial.println(GRIOTTE_BUILD_ID);
 
-#ifdef ESP32
-  Serial.println("This is ESP32");
   pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH);
+
+#ifdef ESP32
+  Serial.println("This is ESP32");
 #endif
 #ifdef ESP8266
   Serial.println("This is ESP8266");
@@ -128,17 +138,22 @@ void setup(void)
 
   // set up the mesh network
 
-  // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG
+  // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG | STARTUP
   // ERROR | MESH_STATUS | REMOTE | DEBUG
 
 #ifdef ESP32
-  mesh.setDebugMsgTypes(ERROR | MESH_STATUS | CONNECTION | REMOTE | DEBUG);
+  //mesh.setDebugMsgTypes(ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG);
+  mesh.setDebugMsgTypes(ERROR | STARTUP | CONNECTION | REMOTE | DEBUG);
 #endif
 #ifdef ESP8266
-  mesh.setDebugMsgTypes(ERROR | REMOTE | DEBUG);
+  //mesh.setDebugMsgTypes(ERROR | STARTUP | REMOTE | DEBUG);
 #endif
 
-  // mesh.setDebugMsgTypes(ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG);
+  Serial.setDebugOutput(true);
+  WiFi.onEvent([](WiFiEvent_t event) {
+    Serial.printf("[WiFi-event] event: %d\n", event);
+  });
+
   mesh.init(MESH_PREFIX, MESH_PASSWORD, (uint16_t) MESH_PORT, WIFI_AP_STA, (uint8_t) MESH_CHANNEL, (uint8_t) MESH_HIDDEN, (uint8_t) MESH_MAXCONN);
   mesh.onReceive(&onReceivedCallback);
   mesh.onNewConnection(&onNewConnectionCallback);
@@ -148,7 +163,45 @@ void setup(void)
   mesh.onNodeDelayReceived(&onNodeDelayReceived);
 
   currentNode = mesh.getNodeId();
-  Serial.printf("I am node #%u in the mesh\n", currentNode);
+  Serial.printf("I am node #%u in the mesh", currentNode);
+  Serial.println();
+
+#ifdef ESP8266
+  mesh.setContainsRoot(true);
+#endif
+
+#ifdef HAS_STATION_CREDS
+  if(MESH_ROOT_NODE != currentNode) {
+    Serial.println("I am not the root node");
+    mesh.setContainsRoot(true);
+  }
+  else {
+    Serial.println("I am the root node");
+    
+    int n = WiFi.scanNetworks(false, true);  // async=false, show_hidden=true
+    if(0 == n) {
+      Serial.println("No networks found.");
+    } else {
+      // Serial.printf("%d networks found:\n", n);
+      for(int i = 0; i < n; ++i) {
+        if(0 == strcmp(STATION_SSID, WiFi.SSID(i).c_str()) && MESH_CHANNEL == WiFi.channel(i)) {
+          foundWifiStation = TRUE;
+          Serial.printf("Found network %s on channel %d with BSSID=%s", STATION_SSID, MESH_CHANNEL, WiFi.BSSIDstr(i).c_str());
+          Serial.println();
+        }
+      }
+      if(FALSE == foundWifiStation) {
+        Serial.printf("Network %s NOT FOUND on channel %d", STATION_SSID, MESH_CHANNEL);
+      }
+    }
+
+    mesh.setRoot(true);
+    mesh.stationManual(STATION_SSID, STATION_PASSWORD);
+    mesh.setHostname(MESH_ROOT_HOST);
+    // WiFi.begin(STATION_SSID, STATION_PASSWORD);
+    //mesh.sendBroadcast("Root node is now: "+currentNode);
+  }
+#endif
 
 #ifdef ESP32
   mesh.sendBroadcast("Hi, ESP32 starting up");
@@ -157,23 +210,7 @@ void setup(void)
   mesh.sendBroadcast("Hi, ESP8266 starting up");
 #endif
 
-#ifdef ESP8266
-  mesh.setContainsRoot(true);
-#endif
-
-#ifdef ESP32
-  if(currentNode != MESH_ROOT_NODE) {
-    Serial.println("I am not the root node");
-    mesh.setContainsRoot(true);
-  }
-  else {
-    Serial.println("I am the root node");
-    mesh.setRoot(true);
-    mesh.stationManual(STATION_SSID, STATION_PASSWORD);
-    mesh.setHostname(MESH_ROOT_HOST);
-    //mesh.sendBroadcast("Root node is now: "+currentNode);
-  }
-#endif
+  Serial.println();
 }
 
 /*
@@ -207,16 +244,26 @@ void loop(void)
   timeTrigger = millis();
   mesh.update();
 
+#ifdef HAS_STATION_CREDS
+  if(MESH_ROOT_NODE == currentNode && getWanIP() != myWanIP) {
+    myWanIP = getWanIP();
+    Serial.println("My WAN IP is now: " + myWanIP.toString());
+  }
+#endif
+
 #ifdef ESP8266
   if(0 != iaqAddress) {
     checkIaqSensorStatus();
 
     if(iaqSensor.run(timeTrigger)) { // If new data is available
       digitalWrite(LED, LOW);
-      // Serial.printf("[Heap before run] Free: %u\n", ESP.getFreeHeap());
+      // Serial.printf("[Heap before run] Free: %u", ESP.getFreeHeap());
+      // Serial.println();
 
       lastReadData = timeTrigger;
       sensorFailCount = 0;
+
+      snprintf(mTimeBuffer, sizeof(mTimeBuffer), "%u", timeTrigger/1000);
 
       snprintf(mPressureBuffer, sizeof(mPressureBuffer), "%.0f", iaqSensor.pressure);
       snprintf(mHumidityBuffer, sizeof(mHumidityBuffer), "%.0f", iaqSensor.humidity);
@@ -228,7 +275,6 @@ void loop(void)
         snprintf(mVocBuffer, sizeof(mVocBuffer), "%.2f", iaqSensor.breathVocEquivalent);
       }
       else {
-        snprintf(mTimeBuffer, sizeof(mTimeBuffer), "%u", timeTrigger/1000);
 
         sprintf(
           outBuffer,
@@ -236,7 +282,7 @@ void loop(void)
           mTimeBuffer
         );
 
-        Serial.println(outBuffer);
+        //Serial.println(outBuffer);
         //mesh.sendBroadcast(outBuffer);
         snprintf(mIaqBuffer, sizeof(mIaqBuffer), "%.1f", 0.0);
         snprintf(mCo2Buffer, sizeof(mCo2Buffer), "%.0f", 0.0);
@@ -245,31 +291,42 @@ void loop(void)
 
       sprintf(
         outBuffer,
-        "%s hPa;%s%% (humidity);%s °C; %s IAQ;%s ppm (eCO2); %s VOC; %u iAQ accuracy; %u free HEAP",
+        "%s [hPa]; %s hum. [%%]; %s temp. [°C]; %s IAQ; %s eCO² [PPM]; %s VOC [PPM]; %u/3 iAQ accuracy; %u free heap [o]; %s uptime [s]",
         mPressureBuffer, mHumidityBuffer, temperatureBuffer, mIaqBuffer, mCo2Buffer, mVocBuffer,
-        iaqSensor.iaqAccuracy, ESP.getFreeHeap()
+        iaqSensor.iaqAccuracy, ESP.getFreeHeap(), mTimeBuffer
       );
 
+/*
       if(2 <= iaqSensor.iaqAccuracy
         && (10000 < iaqSensor.co2Equivalent
           || 10.0 < iaqSensor.breathVocEquivalent
           || 500 < iaqSensor.staticIaq)) {
         Serial.printf(
-          "Wild sensor values: co2Equivalent=%s, breathVocEquivalent=%s, staticIaq=%s\n",
+          "Wild sensor values: co2Equivalent=%s, breathVocEquivalent=%s, staticIaq=%s",
           mCo2Buffer, mVocBuffer, mIaqBuffer
         );
+        Serial.println();
         Serial.println(outBuffer);
-        // Serial.printf("[Heap after run] Free: %u\n", ESP.getFreeHeap());
+        // Serial.printf("[Heap after run] Free: %u", ESP.getFreeHeap());
+        // Serial.println();
         ESP.restart();
       }
+*/
 
-      if(MESH_ROOT_NODE != currentNode) {
-        mesh.sendBroadcast(outBuffer);
+      if(FALSE == isRootReachable) {
+        if(0 == nbRootUnreachable++) {
+          Serial.println("Root node is not reachable?");
+        }
+        if(5 <= nbRootUnreachable) {
+          nbRootUnreachable = 0;
+        }
       }
 
+      mesh.sendBroadcast(outBuffer);
       Serial.println(outBuffer);
       digitalWrite(LED, HIGH);
-      // Serial.printf("[Heap after run] Free: %u\n", ESP.getFreeHeap());
+      // Serial.printf("[Heap after run] Free: %u", ESP.getFreeHeap());
+      // Serial.println();
     }
     else if(timeTrigger - lastReadData < 3*1100) {
       // never mind, sensor has values about every 3 seconds
@@ -287,12 +344,13 @@ void loop(void)
     }
     else {
       sensorFailCount++;
-      Serial.printf("Sensor read failed %u times in a row\n", sensorFailCount);
+      Serial.printf("Sensor read failed %u times in a row", sensorFailCount);
+      Serial.println();
       if(SENSOR_FAIL_THRESHOLD < sensorFailCount) {
         sprintf(outBuffer, "Sensor unresponsive. Rebooting...");
         Serial.println(outBuffer);
         // delay(500);
-        ESP.restart();  // or soft-reset just the sensor if possible
+        //ESP.restart();  // or soft-reset just the sensor if possible
       }
     }
   }
@@ -380,14 +438,15 @@ void onReceivedCallback(uint32_t from, String &msg) {
   int receivedAt = millis();
 
 #ifdef ESP32
-  Serial.printf("Received from #%u: %s\n", from, msg.c_str());
+  Serial.printf("Received from #%u: %s", from, msg.c_str());
+  Serial.println();
 
-  if(MESH_ROOT_NODE == currentNode && getlocalIP() != myIP) {
-    myIP = getlocalIP();
-    Serial.println("My IP is now: " + myIP.toString());
+  if(MESH_ROOT_NODE == currentNode && myWanIP.toString() == "0.0.0.0") {
+    //Serial.printf("I don't have an IP on the WiFi: %s", STATION_SSID);
+    //Serial.println();
   }
 
-  if(MESH_ROOT_NODE == currentNode && myIP.toString() != "0.0.0.0") {
+  if(MESH_ROOT_NODE == currentNode && myWanIP.toString() != "0.0.0.0") {
     digitalWrite(LED, LOW);
 
     encode_base64((unsigned char *) msg.c_str(), msg.length(), base64);
@@ -398,8 +457,8 @@ void onReceivedCallback(uint32_t from, String &msg) {
 
     sprintf(payloadBuffer, "data=%s&uptime=%u", jsonBuffer, receivedAt);
 
+    //Serial.printf("Dbg: size=%u, payload=%s", strlen(payloadBuffer), payloadBuffer);
     //Serial.println();
-    //Serial.printf("Dbg: size=%u, payload=%s\n", strlen(payloadBuffer), payloadBuffer);
 
     char userAgent[100];
     sprintf(userAgent, "%s/%u", HTTP_USERAGENT, from);
@@ -427,34 +486,55 @@ void onReceivedCallback(uint32_t from, String &msg) {
 
     if(200 == statusCode) {
       Serial.printf(
-        "Forwarded readings (%uo) from #%u in %ums\n",
+        "Forwarded readings (%uo) from #%u in %ums",
         strlen(payloadBuffer), from, timeSpent
       );
+      Serial.println();
     }
     else {
       Serial.printf(
-        "Failed (probably) to forward data from #%u in %ums: status %u\n",
+        "Failed (probably) to forward data from #%u in %ums: status %u",
         from, timeSpent, statusCode
       );
+      Serial.println();
     }
 */
 
-    //Serial.printf("Free HEAP after onReceivedCallback: %u\n", ESP.getFreeHeap());
+    //Serial.printf("Free HEAP after onReceivedCallback: %u", ESP.getFreeHeap());
+    //Serial.println();
     digitalWrite(LED, HIGH);
   }
 #endif
 }
 
 void onNewConnectionCallback(uint32_t nodeId) {
-  Serial.printf("New mesh connection with #%u\n", nodeId);
+  Serial.printf("New mesh connection with #%u", nodeId);
+  Serial.println();
+  if(MESH_ROOT_NODE == nodeId) {
+    Serial.println("The root node has entered the chat");
+    isRootReachable = TRUE;
+  }
+  else {
+    // generic node
+  }
 }
 
 void onDroppedConnectionCallback(uint32_t nodeId) {
-  Serial.printf("Dropped mesh connection from #%u\n", nodeId);
+  Serial.printf("Dropped mesh connection from #%u", nodeId);
+  Serial.println();
+  if(MESH_ROOT_NODE == nodeId) {
+    Serial.println("The root node has left the chat");
+    isRootReachable = FALSE;
+    nbRootUnreachable = 0;
+  }
+  else {
+    // generic node
+  }
 }
 
 void onChangedConnectionsCallback() {
-  // Serial.printf("Changed mesh connections; new topology is: %s\n", mesh.subConnectionJson().c_str());
+  Serial.printf("Changed mesh connections; new topology is: %s", mesh.subConnectionJson().c_str());
+  Serial.println();
 }
 
 void onNodeTimeAdjustedCallback(int32_t offset) {
@@ -463,9 +543,12 @@ void onNodeTimeAdjustedCallback(int32_t offset) {
 void onNodeDelayReceived(uint32_t nodeId, int32_t delay) {
 }
 
+IPAddress getMeshIP() {
+  return IPAddress(mesh.getAPIP());
+}
+
 #ifdef ESP32
-IPAddress getlocalIP() {
-  // IPAddress(mesh.getAPIP());
+IPAddress getWanIP() {
   return IPAddress(mesh.getStationIP());
 }
 #endif

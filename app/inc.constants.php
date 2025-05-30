@@ -20,13 +20,13 @@ define('GRIOTTE_RUN', realpath(GRIOTTE_FOLDER.'/run'));
  * Delay in seconds before new readings are accepted for a node
  * This delay is computed from a node's run-file modified timestamp
  */
-define('GRIOTTE_NODE_DELAY', 60*1);
+define('GRIOTTE_NODE_DELAY', (int) 60*(getenv('GRIOTTE_NODE_DELAY') ?: 1));
 
 /**
  * Delay in seconds before new readings are committed to a database
  * This delay is computed from a global buffer-file modified timestamp
  */
-define('GRIOTTE_BUFFER_DELAY', 60*5);
+define('GRIOTTE_BUFFER_DELAY', (int) 60*(getenv('GRIOTTE_BUFFER_DELAY') ?: 5));
 
 /**
  * Display name for the web app
