@@ -3,15 +3,29 @@
 header('Content-Type: text/plain; charset=utf-8', true);
 
 
-if(empty($_POST['data'])) {
-  trace(LOG_ERR, 'Missing "data" field in the request body');
+if(empty($_POST['struct'])) {
+  trace(LOG_ERR, 'Missing "type" field in the request body');
   http(400, 'ko');
   exit;
 }
 
-$payload = json_decode($_POST['data'], true);
+$types_allowlist = ['bme680'];
+if(!in_array($_POST['struct'], $types_allowlist, true)) {
+  trace(LOG_ERR, 'Data "%s" is not currently handled', $_POST['struct']);
+  http(400, 'ko');
+  exit;
+}
+
+$payload_struct = $_POST['struct'];
+if(empty($_POST[$payload_struct])) {
+  trace(LOG_ERR, 'Missing "%s" field in the request body', $payload_struct);
+  http(400, 'ko');
+  exit;
+}
+
+$payload = json_decode($_POST[$payload_struct], true);
 if(false === $payload) {
-  trace(LOG_ERR, 'Input data was not JSON: %s', print_r($_POST['data'], true));
+  trace(LOG_ERR, 'Input data was not JSON: %s', json_encode($_POST[$payload_struct]));
   http(400, 'ko');
   exit;
 }
@@ -47,15 +61,16 @@ trace(LOG_INFO, 'Received payload: %s', $msg);
 
 
 $pattern = <<<EOT
-says:
-\s*(\d+)\s+[^;]+        # pressure
-;\s*(\d+).\s+[^;]+      # humidity
-;\s*(\d+)\s+[^;]+       # temperature
-;\s*([0-9.]+)\s+[^;]+   # IAQ
-;\s*(\d+)\s+[^;]+       # eCO2
-;\s*([0-9.]+)\s[^;]+    # VOC
-(?:;\s*(\d+)\s+[^;]+)?  # IAQ accuracy
-(?:;\s*(\d+)\s+[^;]+)?  # free HEAP
+says:\s*
+(\d+)        # pressure
+;(\d+)       # humidity
+;(\d+)       # temperature
+;([0-9.]+)   # IAQ
+;(\d+)       # eCO2
+;([0-9.]+)   # VOC
+;(\d+)       # IAQ accuracy
+;(\d+)       # free HEAP
+;(\d+)       # uptime
 EOT;
 
 if(!preg_match("~$pattern~x", $msg, $readings)) {
@@ -65,9 +80,9 @@ if(!preg_match("~$pattern~x", $msg, $readings)) {
 }
 
 
-$readings = array_slice($readings, 1, 8);
+$readings = array_slice($readings, 1, 9);
 $readings = array_map('floatval', $readings);
-$readings = array_pad($readings, 8, 'NULL');
+$readings = array_pad($readings, 9, 'NULL');
 $griotte_nb = floatval($griotte_nb);
 
 http(200, 'ok');
@@ -90,17 +105,17 @@ $buffer_filename = sprintf('%s/buffer.csv', GRIOTTE_FOLDER);
 
 $run_filenames = [
   'buffer' => sprintf('%s/buffer.run', GRIOTTE_RUN),
-  'data' => sprintf('%s/%s.run', GRIOTTE_RUN, $griotte_nb),
+  'bme680' => sprintf('%s/%s.run', GRIOTTE_RUN, $griotte_nb),
 ];
 
-if(!file_exists($run_filenames['data'])) {
-  trace(LOG_DEBUG, 'No run data file for node #%s: saving data', $griotte_nb);
+if(!file_exists($run_filenames['bme680'])) {
+  trace(LOG_DEBUG, 'No run bme680 file for node #%s: saving data', $griotte_nb);
   goto buffer;
 }
 
-$filemtime = filemtime($run_filenames['data']);
+$filemtime = filemtime($run_filenames['bme680']);
 if(false === $filemtime) {
-  trace(LOG_ERR, 'Unable to get run data file stats: %s', $run_filenames['data']);
+  trace(LOG_ERR, 'Unable to get run bme680 file stats: %s', $run_filenames['bme680']);
   http(500, 'ko');
   exit;
 }
@@ -143,8 +158,8 @@ fclose($buffer_handle);
 $filemtime = filemtime($run_filenames['buffer']);
 
 if(false === $filemtime) {
-  if(!touch($run_filenames['data'], $_SERVER['REQUEST_TIME'])) {
-    trace(LOG_ERR, 'Unable to create run data file: %s', $run_filenames['data']);
+  if(!touch($run_filenames['bme680'], $_SERVER['REQUEST_TIME'])) {
+    trace(LOG_ERR, 'Unable to create run bme680 file: %s', $run_filenames['bme680']);
     http(500, 'ko');
     exit;
   }
@@ -155,8 +170,8 @@ if($_SERVER['REQUEST_TIME'] >= ($filemtime + GRIOTTE_BUFFER_DELAY)) {
   goto commit;
 }
 
-if(!touch($run_filenames['data'], $_SERVER['REQUEST_TIME'])) {
-  trace(LOG_ERR, 'Unable to create run data file: %s', $run_filenames['data']);
+if(!touch($run_filenames['bme680'], $_SERVER['REQUEST_TIME'])) {
+  trace(LOG_ERR, 'Unable to create run bme680 file: %s', $run_filenames['bme680']);
   http(500, 'ko');
   exit;
 }
@@ -234,13 +249,13 @@ if(!fopen($buffer_filename, 'w')) {
 }
 
 if(!touch($run_filenames['buffer'], $_SERVER['REQUEST_TIME'])) {
-  trace(LOG_ERR, 'Unable to create run buffer file: %s', $run_filenames['data']);
+  trace(LOG_ERR, 'Unable to create run buffer file: %s', $run_filenames['bme680']);
   http(500, 'ko');
   exit;
 }
 
-if(!touch($run_filenames['data'], $_SERVER['REQUEST_TIME'])) {
-  trace(LOG_ERR, 'Unable to create run data file: %s', $run_filenames['data']);
+if(!touch($run_filenames['bme680'], $_SERVER['REQUEST_TIME'])) {
+  trace(LOG_ERR, 'Unable to create run data file: %s', $run_filenames['bme680']);
   http(500, 'ko');
   exit;
 }
@@ -253,5 +268,5 @@ goto finish;
  * End of the script
  */
 finish:
+http(201, 'ok');
 exit;
-
