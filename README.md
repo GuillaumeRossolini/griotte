@@ -35,7 +35,7 @@ Resource usage of the web server process on the Raspberry Pi Zero W (freshly reb
 
 Another example of this on video with three programs composed on the screen (htop is top left with the griotte webserver highlighted, btop is center right also with the griotte webserver highlighted and journalctl is bottom):
 
-[![alt text](https://i.ytimg.com/vi/f3GzV0eSte4/sddefault.jpg)](https://www.youtube.com/watch?v=f3GzV0eSte4)
+[![alt text](https://video.infosec.exchange/lazy-static/previews/e0410a77-d689-4edb-ac58-935f51b559a6.jpg)](https://video.infosec.exchange/w/a78x2MiuKruzen83Cf3Dpe)
 
 After two weeks of uptime, this process is still using a negligible amount of memory (about 13% or 55 MB) and CPU (2%):
 ![Example of htop after two weeks of uptime](./doc/img/htop_16d.png)
