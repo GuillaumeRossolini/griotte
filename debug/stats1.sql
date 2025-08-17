@@ -1,3 +1,6 @@
+-- Get readings since a specific date, grouped by node
+-- With a CTE over LAG() to identify reboot count and last date
+
 WITH _readings AS (
   SELECT node, created_at, heap, uptime
     , LAG (uptime) OVER (PARTITION BY node ORDER BY created_at) AS lag
@@ -10,7 +13,7 @@ WITH _readings AS (
   WHERE uptime < lag
 )
 
-SELECT 
+SELECT
   DATE(MIN(created_at)) AS day,
   node,
   TIME(MIN(created_at)) AS earliest_reading,
