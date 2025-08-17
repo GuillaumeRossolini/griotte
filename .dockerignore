@@ -1,4 +1,8 @@
 .git
 .gitignore
 doc
+linux
+ESP32-BME680
 app/config.*.ini
+db
+*.sq3

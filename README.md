@@ -286,7 +286,7 @@ The basic command looks like this:
 
 ```sh
 git clone https://github.com/GuillaumeRossolini/griotte.git
-sudo mkdir griotte/run
+# sudo mkdir griotte/run
 sudo chown -R www-data:pi griotte
 chmod +x griotte/app/csv2sqlite.sh
 sudo ln -s griotte/app/csv2sqlite.sh /usr/local/bin/csv2sqlite
@@ -380,8 +380,13 @@ find \
 
 ## Known issues & Wishlist
 
+* improve the Docker docs
+* write the Getting Started docs
+* refactor the docs
 * when a sensor starts returning incorrect readings, it should recalibrate or self reset
 * when a node fails to reconnect to the mesh, it should self reset
-* the ESP32 is flooding my local DNS resolver logs, it doesn't seem to cache any entries
-* changes to the mesh topology woud be useful in the database (only the ESP32 point of view)
-* the nodes shouldn't have to wait for the BME sensor to finish self calibrating (air quality), to send other readings (temperature, humidity, barometric pressure)
+* changes to the mesh topology are sent over HTTP (keeps the mesh alive) but currently not logged to the database
+* the ESP32 should forward readings to the Raspberry Pi Zero only when the WAN WiFi is ready
+* clean up the console traces, especially when a network is down
+* log the IP of the original node in the database (?)
+* write some sqlite sample queries
