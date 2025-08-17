@@ -4,21 +4,14 @@ header('Content-Type: text/plain; charset=utf-8', true);
 
 
 if(empty($_POST['struct'])) {
-  trace(LOG_ERR, 'Missing "type" field in the request body');
-  http(400, 'ko');
-  exit;
-}
-
-$types_allowlist = ['bme680'];
-if(!in_array($_POST['struct'], $types_allowlist, true)) {
-  trace(LOG_ERR, 'Data "%s" is not currently handled', $_POST['struct']);
+  trace(LOG_ERR, 'Missing "struct" field in the request body: %s', json_encode(array_keys($_POST)) ?: 'n/a');
   http(400, 'ko');
   exit;
 }
 
 $payload_struct = $_POST['struct'];
 if(empty($_POST[$payload_struct])) {
-  trace(LOG_ERR, 'Missing "%s" field in the request body', $payload_struct);
+  trace(LOG_ERR, 'Missing "%s" field in the request body: %s', $payload_struct, json_encode(array_keys($_POST)) ?: 'n/a');
   http(400, 'ko');
   exit;
 }
@@ -28,6 +21,16 @@ if(false === $payload) {
   trace(LOG_ERR, 'Input data was not JSON: %s', json_encode($_POST[$payload_struct]));
   http(400, 'ko');
   exit;
+}
+
+$gateway_uptime = null;
+if(!empty($_POST['uptime'])) {
+  $gateway_uptime = (int) $_POST['uptime'];
+}
+
+$gateway_signal = null;
+if(!empty($_POST['signal'])) {
+  $gateway_signal = (int) $_POST['signal'];
 }
 
 $agent_name = null;
@@ -51,13 +54,21 @@ if(!preg_match($regexp, $_SERVER['HTTP_USER_AGENT'], $griotte)) {
 list($agent_name, $griotte_nb) = explode('/', $_SERVER['HTTP_USER_AGENT']);
 
 $msg = sprintf(
-  '%s #%s says: %s',
+  '%s #%s (%d dB) says: %s',
   $agent_name ?: 'n/a',
   $griotte_nb ?: 'n/a',
+  $gateway_signal ?: 'n/a',
   base64_decode($payload['msg'])
 );
 
-trace(LOG_INFO, 'Received payload: %s', $msg);
+trace(LOG_INFO, 'Received %s payload: %s', $payload_struct, $msg);
+
+$types_allowlist = ['bme680'];
+if(!in_array($payload_struct, $types_allowlist, true)) {
+  trace(LOG_ERR, 'Data "%s" is not currently handled', $payload_struct);
+  http(400, 'ko');
+  exit;
+}
 
 
 $pattern = <<<EOT

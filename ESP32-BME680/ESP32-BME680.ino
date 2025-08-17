@@ -1,4 +1,4 @@
-#include "griotte_creds_mar.h"
+#include "griotte_creds_local.h"
 #include "painlessMesh.h"
 
 /*
@@ -89,9 +89,14 @@ byte scanWifi();
 void wifiCallback_OnEvent(WiFiEvent_t);
 byte hasWlanIP = FALSE;
 WiFiClient wifi;
-void sendHttp(unsigned long, uint32_t, String &);
+byte sendHttp(unsigned long, uint32_t, const char*, String &);
 IPAddress getWanIP();
-IPAddress myWanIP(0,0,0,0);
+IPAddress wanIP(0,0,0,0);
+const char DATASTRUCT_TYPOLOGY[] = "typology";
+const char DATASTRUCT_BME680[] = "bme680";
+static const unsigned int HTTP_RESPONSE_TIMEOUT = 350;
+static const unsigned int HTTP_WAIT_FOR_DATA_DELAY = 200;
+static const unsigned int HTTP_NB_RETRIES = 3;
 #endif
 
 
@@ -108,8 +113,9 @@ uint32_t currentNode;
 unsigned long timeTrigger;
 
 
+byte hasMeshIP = FALSE;
 IPAddress getMeshIP();
-IPAddress myMeshIP(0,0,0,0);
+IPAddress meshIP(0,0,0,0);
 
 
 void setup(void)
@@ -213,8 +219,8 @@ void reminders(unsigned long startedAt) {
     }
 
 #ifdef HAS_STATION_CREDS
-    String meshJson = "topology::" + mesh.subConnectionJson();
-    sendHttp(timeTrigger, currentNode, meshJson); // keep the wifi alive
+    String meshJson = mesh.subConnectionJson();
+    sendHttp(timeTrigger, currentNode, DATASTRUCT_TYPOLOGY, meshJson); // keep the wifi alive
 #endif
   }
 }
@@ -229,8 +235,18 @@ void meshCallback_OnReceived(uint32_t from, String &msg) {
 
   hasRootNode(from, TRUE);
 
+  if(FALSE == hasMeshIP) {
+    meshIP = getMeshIP();
+  }
+
 #ifdef HAS_STATION_CREDS
-  sendHttp(receivedAt, from, msg);
+  byte isSuccess = FALSE;
+  for(int i=0; i<=HTTP_NB_RETRIES; ++i) {
+    if(sendHttp(receivedAt, from, DATASTRUCT_BME680, msg)) {
+      isSuccess = TRUE;
+      break;
+    }
+  }
 #endif
 }
 
@@ -309,23 +325,26 @@ void setupNetwork() {
 
 
 #ifdef HAS_STATION_CREDS
-void sendHttp(unsigned long receivedAt, uint32_t from, String &msg) {
-  Serial.printf("At %us from #%u: %s", (int) receivedAt/1000, from, msg.c_str());
+byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, String &msg) {
+  const unsigned long startedAt = millis();
+  const int signalStrength = WiFi.RSSI();
+
+  Serial.printf("%s at %us over MESH/%s from #%u: %s", dataType, (int) receivedAt/1000, meshIP.toString(), from, msg.c_str());
+  // Serial.println();
 
   if(MESH_ROOT_NODE != currentNode) {
     Serial.println("\tnot forwarded (not the root node)");
     // Serial.println();
-    return;
+    return FALSE;
   }
 
   if(FALSE == hasWlanIP) {
     // Serial.printf("I don't have an IP on the WiFi: %s", STATION_SSID);
     // Serial.println();
     Serial.println("\tnot forwarded (no WAN IP)");
-    return;
+    return FALSE;
   }
 
-  Serial.println();
   digitalWrite(LED, LOW);
 
   encode_base64((unsigned char *) msg.c_str(), msg.length(), base64);
@@ -334,7 +353,7 @@ void sendHttp(unsigned long receivedAt, uint32_t from, String &msg) {
   doc["msg"] = base64;
   serializeJson(doc, jsonBuffer);
 
-  snprintf(payloadBuffer, MAX_MSG_LEN, "data=%s&uptime=%u", jsonBuffer, receivedAt);
+  snprintf(payloadBuffer, MAX_MSG_LEN, "struct=%s&signal=%d&%s=%s", dataType, signalStrength, dataType, jsonBuffer);
 
   //Serial.printf("Dbg: size=%u, payload=%s", strlen(payloadBuffer), payloadBuffer);
   //Serial.println();
@@ -344,8 +363,8 @@ void sendHttp(unsigned long receivedAt, uint32_t from, String &msg) {
 
   HttpClient http = HttpClient(wifi, HTTP_ADDR, HTTP_PORT);
 
-  http.setHttpResponseTimeout((int) 100);
-  http.setHttpWaitForDataDelay((int) 200);
+  http.setHttpResponseTimeout(HTTP_RESPONSE_TIMEOUT);
+  http.setHttpWaitForDataDelay(HTTP_WAIT_FOR_DATA_DELAY);
   http.noDefaultRequestHeaders();
 
   http.beginRequest();
@@ -357,31 +376,44 @@ void sendHttp(unsigned long receivedAt, uint32_t from, String &msg) {
   http.beginBody();
   http.print(payloadBuffer);
   http.endRequest();
-  http.stop();
 
-/*
-  const unsigned int statusCode = http.responseStatusCode();
-  const unsigned long timeSpent = millis() - receivedAt;
+  const int statusCode = http.responseStatusCode();
+  const unsigned long timeSpent = millis() - startedAt;
+  http.skipResponseHeaders();
+  while (http.available()) {
+    http.read();  // force socket cleanup & discard response
+  }
+
+  Serial.printf("\t%uo payload in %ums via WAN/%s (%d dB): status %d", strlen(payloadBuffer), timeSpent, wanIP.toString(), signalStrength, statusCode);
+  Serial.println();
 
   if(200 == statusCode) {
+    // Serial.printf("\tSent %uo in %ums via %s (%d dB): HTTP %d", strlen(payloadBuffer), timeSpent, wanIP.toString(), signalStrength, statusCode);
+    // Serial.println();
+  }
+  else if (statusCode <= 0) {
     Serial.printf(
-      "Forwarded readings (%uo) from #%u in %ums",
-      strlen(payloadBuffer), from, timeSpent
+      "Failed to forward %uo from #%u in %ums: error code %d",
+      strlen(payloadBuffer), from, timeSpent, statusCode
     );
     Serial.println();
+    Serial.print('Data was: ');
+    Serial.println(payloadBuffer);
   }
   else {
     Serial.printf(
-      "Failed (probably) to forward data from #%u in %ums: status %u",
-      from, timeSpent, statusCode
+      "Failed to forward %uo from #%u in %ums: HTTP %d",
+      strlen(payloadBuffer), from, timeSpent, statusCode
     );
     Serial.println();
   }
-*/
+
+  http.stop();
 
   // Serial.printf("Free HEAP after meshCallback_OnReceived: %u", ESP.getFreeHeap());
   // Serial.println();
   digitalWrite(LED, HIGH);
+  return 200 == statusCode;
 }
 
 IPAddress getWanIP() {
@@ -422,6 +454,12 @@ byte scanWifi() {
  * https://github.com/espressif/arduino-esp32/blob/master/libraries/WiFi/examples/WiFiClientEvents/WiFiClientEvents.ino
  */
 void wifiCallback_OnEvent(WiFiEvent_t event) {
+  const int signalStrength = WiFi.RSSI();
+  if(signalStrength > 0) {
+    Serial.print("WiFi: signal strength is ");
+    Serial.println(WiFi.RSSI());
+  }
+
   switch(event) {
     // case ARDUINO_EVENT_WIFI_READY:               Serial.println("WiFi: interface ready"); break;
     // case ARDUINO_EVENT_WIFI_SCAN_DONE:           Serial.println("WiFi: completed scan for access points"); break;
@@ -446,7 +484,7 @@ void wifiCallback_OnEvent(WiFiEvent_t event) {
       Serial.printf(" at %us", (long) millis()/1000);
       Serial.println();
       hasWlanIP = TRUE;
-      myWanIP = getWanIP();
+      wanIP = getWanIP();
       break;
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
       Serial.println("WiFi STA: Lost WAN IP address");
