@@ -1,13 +1,13 @@
 version: "3"
 
-# docker build -t griotte:2025-08-03 .
+# docker build -t griotte:2025-09-07 .
 # docker stack deploy -c docker-compose.yml --prune griotte
 
 services:
 
   web:
-    image: griotte:2025-08-03
-    tpmfs:
+    image: griotte:2025-09-07
+    tmpfs:
       - /tmp
       - /var/www/run
     ports:
