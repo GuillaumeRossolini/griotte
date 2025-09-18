@@ -1,6 +1,9 @@
 #include "griotte_creds_local.h"
 #include "painlessMesh.h"
 
+#define HAS_GRIOTTE_BUILD_ID
+const char GRIOTTE_BUILD_ID[] = "This is build 2025-09-18 13:00";
+
 /*
 # iaqSensor.staticIaq
   Range: 0.0 to 500.0
@@ -43,7 +46,6 @@ static const unsigned int MAX_MSG_LEN = 256;
 static const unsigned int REMINDERS_THRESHOLD = 45000;
 char outBuffer[MAX_MSG_LEN];
 byte isRootReachable = FALSE;
-unsigned int nbRootUnreachable = 0;
 unsigned long lastReminderTimer = 0;
 
 void errLeds();
@@ -90,7 +92,6 @@ void wifiCallback_OnEvent(WiFiEvent_t);
 byte hasWlanIP = FALSE;
 WiFiClient wifi;
 byte sendHttp(unsigned long, uint32_t, const char*, String &);
-IPAddress getWanIP();
 IPAddress wanIP(0,0,0,0);
 const char DATASTRUCT_TYPOLOGY[] = "typology";
 const char DATASTRUCT_BME680[] = "bme680";
@@ -114,7 +115,6 @@ unsigned long timeTrigger;
 
 
 byte hasMeshIP = FALSE;
-IPAddress getMeshIP();
 IPAddress meshIP(0,0,0,0);
 
 
@@ -131,6 +131,7 @@ void setup(void)
 
   // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG | STARTUP
   // ERROR | MESH_STATUS | REMOTE | DEBUG
+  // mesh.setDebugMsgTypes(CONNECTION);
 
 #ifdef ESP32
   Serial.println("This is ESP32");
@@ -194,11 +195,13 @@ void hasRootNode(uint32_t nodeId, byte nodeIsAvailable) {
     // never mind, no change
   }
   else if(FALSE == nodeIsAvailable) {
-    Serial.println("The root node has left the chat");
+    Serial.printf("The root node has left the chat: #%u", nodeId);
+    Serial.println();
     isRootReachable = FALSE;
   }
   else {
-    Serial.println("The root node has joined the chat");
+    Serial.printf("The root node has joined the chat: #%u", nodeId);
+    Serial.println();
     isRootReachable = TRUE;
   }
 }
@@ -206,23 +209,46 @@ void hasRootNode(uint32_t nodeId, byte nodeIsAvailable) {
 
 void reminders(unsigned long startedAt) {
   if(REMINDERS_THRESHOLD > startedAt - lastReminderTimer) {
-    // too early
+    return; // too early
   }
-  else {
-    lastReminderTimer = timeTrigger;
 
-    Serial.printf("I am node #%u in the mesh", currentNode); // simply helpful on the Serial console
-    Serial.println();
+  lastReminderTimer = timeTrigger;
+  meshIP = mesh.getAPIP();
 
-    if(MESH_ROOT_NODE == currentNode) {
-      mesh.sendBroadcast("Hello this is root speaking"); // keep the mesh alive
-    }
+  Serial.printf(
+    "I am node #%u at %us over MESH/%s (%u subs, stability %d)", currentNode, (int) startedAt/1000,
+    meshIP.toString().c_str(),
+    mesh.subs.size(),
+    mesh.stability
+  );
 
 #ifdef HAS_STATION_CREDS
-    String meshJson = mesh.subConnectionJson();
-    sendHttp(timeTrigger, currentNode, DATASTRUCT_TYPOLOGY, meshJson); // keep the wifi alive
-#endif
+  if(FALSE == hasWlanIP) {
+    Serial.print(" and no WAN IP");
   }
+  else {
+    Serial.printf(" and WAN/%s (%d dBm)", wanIP.toString().c_str(), WiFi.RSSI());
+  }
+#endif
+  Serial.println();
+
+  if(mesh.isRoot()) {
+    Serial.println("I am the root node");
+    mesh.sendBroadcast("Hello this is root"); // keep the mesh alive
+  }
+  else if(FALSE == isRootReachable) {
+    Serial.printf("Root node #%u is not reachable", MESH_ROOT_NODE);
+    Serial.println();
+  }
+  else {
+    Serial.printf("Root node #%u is reachable", MESH_ROOT_NODE);
+    Serial.println();
+  }
+
+#ifdef HAS_STATION_CREDS
+  String meshJson = mesh.subConnectionJson();
+  sendHttp(timeTrigger, currentNode, DATASTRUCT_TYPOLOGY, meshJson); // keep the wifi alive
+#endif
 }
 
 
@@ -235,15 +261,17 @@ void meshCallback_OnReceived(uint32_t from, String &msg) {
 
   hasRootNode(from, TRUE);
 
-  if(FALSE == hasMeshIP) {
-    meshIP = getMeshIP();
-  }
+  // if(FALSE == hasMeshIP) {
+  //   meshIP = mesh.getAPIP();
+  //   Serial.printf("Obtained MESH IP address %s at %us", meshIP.c_str(), (long) millis()/1000);
+  //   hasMeshIP = TRUE;
+  // }
 
 #ifdef HAS_STATION_CREDS
   byte isSuccess = FALSE;
   for(int i=0; i<=HTTP_NB_RETRIES; ++i) {
-    if(sendHttp(receivedAt, from, DATASTRUCT_BME680, msg)) {
-      isSuccess = TRUE;
+    isSuccess = sendHttp(receivedAt, from, DATASTRUCT_BME680, msg);
+    if(isSuccess || FALSE == hasWlanIP) {
       break;
     }
   }
@@ -254,6 +282,11 @@ void meshCallback_OnNewConnection(uint32_t nodeId) {
   Serial.printf("New mesh connection with #%u", nodeId);
   Serial.println();
   hasRootNode(nodeId, TRUE);
+  // if(FALSE == hasMeshIP) {
+  //   meshIP = mesh.getAPIP();
+  //   Serial.printf("Obtained MESH IP address %s at %us", meshIP.c_str(), (long) millis()/1000);
+  //   hasMeshIP = TRUE;
+  // }
 }
 
 void meshCallback_OnDroppedConnection(uint32_t nodeId) {
@@ -273,10 +306,6 @@ void meshCallback_OnNodeTimeAdjusted(int32_t offset) {
 void meshCallback_OnNodeDelayReceived(uint32_t nodeId, int32_t delay) {
 }
 
-IPAddress getMeshIP() {
-  return IPAddress(mesh.getAPIP());
-}
-
 
 void setupNetwork() {
   mesh.init(MESH_PREFIX, MESH_PASSWORD, (uint16_t) MESH_PORT, WIFI_AP_STA, (uint8_t) MESH_CHANNEL, (uint8_t) MESH_HIDDEN, (uint8_t) MESH_MAXCONN);
@@ -293,26 +322,20 @@ void setupNetwork() {
   Serial.println();
 
 #ifdef ESP8266
+  Serial.println("I am not the root node");
   mesh.setContainsRoot(true);
 #endif
 
 #ifdef HAS_STATION_CREDS
+  Serial.println("I _am_ the root node");
+
   WiFi.onEvent(&wifiCallback_OnEvent);
+  scanWifi(); // debug WiFi issues
 
-  if(MESH_ROOT_NODE != currentNode) {
-    Serial.println("I am not the root node");
-    mesh.setContainsRoot(true);
-  }
-  else {
-    Serial.println("I _am_ the root node");
-
-    scanWifi(); // debug WiFi issues
-
-    mesh.setRoot(true);
-    mesh.stationManual(STATION_SSID, STATION_PASSWORD);
-    mesh.setHostname(MESH_ROOT_HOST);
-    mesh.sendBroadcast("Hello this is root speaking");
-  }
+  mesh.setRoot(true);
+  mesh.stationManual(STATION_SSID, STATION_PASSWORD);
+  mesh.setHostname(MESH_ROOT_HOST);
+  mesh.sendBroadcast("Hello this is root speaking");
 #endif
 
 #ifdef ESP32
@@ -329,7 +352,7 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
   const unsigned long startedAt = millis();
   const int signalStrength = WiFi.RSSI();
 
-  Serial.printf("%s at %us over MESH/%s from #%u: %s", dataType, (int) receivedAt/1000, meshIP.toString(), from, msg.c_str());
+  Serial.printf("%s at %us from #%u: \t%s", dataType, (int) receivedAt/1000, from, msg.c_str());
   // Serial.println();
 
   if(MESH_ROOT_NODE != currentNode) {
@@ -384,28 +407,28 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
     http.read();  // force socket cleanup & discard response
   }
 
-  Serial.printf("\t%uo payload in %ums via WAN/%s (%d dB): status %d", strlen(payloadBuffer), timeSpent, wanIP.toString(), signalStrength, statusCode);
+  Serial.printf("\t %uo payload in %ums (%d/%d dBm): status %d", strlen(payloadBuffer), timeSpent, signalStrength, WiFi.RSSI(), statusCode);
   Serial.println();
 
   if(200 == statusCode) {
-    // Serial.printf("\tSent %uo in %ums via %s (%d dB): HTTP %d", strlen(payloadBuffer), timeSpent, wanIP.toString(), signalStrength, statusCode);
+    // Serial.printf("\tSent %uo in %ums via %s (%d dBm): HTTP %d", strlen(payloadBuffer), timeSpent, wanIP.toString().c_str(), statusCode);
     // Serial.println();
   }
   else if (statusCode <= 0) {
-    Serial.printf(
-      "Failed to forward %uo from #%u in %ums: error code %d",
-      strlen(payloadBuffer), from, timeSpent, statusCode
-    );
-    Serial.println();
-    Serial.print('Data was: ');
-    Serial.println(payloadBuffer);
+    // Serial.printf(
+    //   "Failed to forward %uo from #%u in %ums: error code %d",
+    //   strlen(payloadBuffer), from, timeSpent, statusCode
+    // );
+    // Serial.println();
+    // Serial.print('Data was: ');
+    // Serial.println(payloadBuffer);
   }
   else {
-    Serial.printf(
-      "Failed to forward %uo from #%u in %ums: HTTP %d",
-      strlen(payloadBuffer), from, timeSpent, statusCode
-    );
-    Serial.println();
+    // Serial.printf(
+    //   "Failed to forward %uo from #%u in %ums: HTTP %d",
+    //   strlen(payloadBuffer), from, timeSpent, statusCode
+    // );
+    // Serial.println();
   }
 
   http.stop();
@@ -414,10 +437,6 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
   // Serial.println();
   digitalWrite(LED, HIGH);
   return 200 == statusCode;
-}
-
-IPAddress getWanIP() {
-  return IPAddress(mesh.getStationIP());
 }
 
 byte scanWifi() {
@@ -479,12 +498,10 @@ void wifiCallback_OnEvent(WiFiEvent_t event) {
       break;
     // case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE: Serial.println("WiFi: authentication mode of access point has changed"); break;
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-      Serial.print("WiFi STA: Obtained WAN IP address ");
-      Serial.print(WiFi.localIP());
-      Serial.printf(" at %us", (long) millis()/1000);
+      wanIP = mesh.getStationIP();
+      Serial.printf("WiFi STA: Obtained WAN IP address %s (%d dBm) at %us", wanIP.toString().c_str(), WiFi.RSSI(), (long) millis()/1000);
       Serial.println();
       hasWlanIP = TRUE;
-      wanIP = getWanIP();
       break;
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
       Serial.println("WiFi STA: Lost WAN IP address");
@@ -652,16 +669,6 @@ void checkSensorData(unsigned long startedAt) {
       digitalWrite(LED, LOW);
       // Serial.printf("[Heap before run] Free: %u", ESP.getFreeHeap());
       // Serial.println();
-
-      if(FALSE == isRootReachable) {
-        if(0 == nbRootUnreachable) {
-          ++nbRootUnreachable;
-          Serial.println("Root node is not reachable");
-        }
-        if(5 <= nbRootUnreachable) {
-          nbRootUnreachable = 0;
-        }
-      }
 
       lastReadData = startedAt;
       sensorFailCount = 0;

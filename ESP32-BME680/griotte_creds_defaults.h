@@ -1,26 +1,28 @@
-#define HAS_GRIOTTE_BUILD_ID
-const char GRIOTTE_BUILD_ID[] = "This is build LOREM IPSUM date/whatever";
+#ifndef GRIOTTE_CREDS_H
+#define GRIOTTE_CREDS_H
 
 #define HAS_MESH_CREDS
-const char MESH_PREFIX[] = "mesh_ssid";
-const char MESH_PASSWORD[] = "mesh_passwd";
+const char MESH_PREFIX[] = "...";
+const char MESH_PASSWORD[] = "...";
 const int MESH_PORT = 5555;
 const int MESH_CHANNEL = 11;
 const int MESH_HIDDEN = 1;
 const int MESH_MAXCONN = 100;
-const int MESH_ROOT_NODE = 123456789;  // esp32-c3
+const int MESH_ROOT_NODE = 1002444205; // esp32-c3
 const char MESH_ROOT_HOST[] = "root.griotte.home";
 
 
 #ifdef ESP32
 #define HAS_STATION_CREDS
-const char STATION_SSID[] = "home_ssid";
-const char STATION_PASSWORD[] = "home_passwd";
+const char STATION_SSID[] = "...";
+const char STATION_PASSWORD[] = "...";
 
 #define HAS_HTTP_CREDS
-const char HTTP_ADDR[] = "192.168.1.1"; // raspberrypi zero
+const char HTTP_ADDR[] = "192.168.1.15"; // raspberrypi zero
 const int  HTTP_PORT = 8081;
 const char HTTP_PATH[] = "/griotte/";
 const char HTTP_METHOD[] = "POST";
 const char HTTP_USERAGENT[] = "Griotte";
-#endif
+#endif // ESP32
+
+#endif // GRIOTTE_CREDS_H
