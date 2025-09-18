@@ -155,7 +155,7 @@ My best guess at the actual libraries I was required to install were (some are i
 |AsyncTCP|v1.1.4|dvarrel|https://github.com/dvarrel/AsyncTCP|
 |ESPAsyncTCP|v1.2.4|dvarrel|https://github.com/dvarrel/ESPAsyncTCP|
 
-(^ these last two are either/or)
+(^ these last two are one for ESP32, the other for ESP8266)
 
 The ArduinoJson library had to be held back even though there is a newer major version available.
 
