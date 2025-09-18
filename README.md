@@ -287,8 +287,8 @@ The basic command looks like this:
 ```sh
 git clone https://github.com/GuillaumeRossolini/griotte.git
 # sudo mkdir griotte/run
-sudo chown -R www-data:pi griotte
 chmod +x griotte/app/csv2sqlite.sh
+sudo chown -R www-data:pi griotte
 sudo ln -s griotte/app/csv2sqlite.sh /usr/local/bin/csv2sqlite
 cd griotte/www
 sudo -u www-data php -S 0.0.0.0:8080
