@@ -2,7 +2,7 @@
 #include "painlessMesh.h"
 
 #define HAS_GRIOTTE_BUILD_ID
-const char GRIOTTE_BUILD_ID[] = "This is build 2025-09-18 13:00";
+const char GRIOTTE_BUILD_ID[] = "This is build 2025-09-22 13:15";
 
 /*
 # iaqSensor.staticIaq
@@ -87,7 +87,7 @@ unsigned char base64[MAX_MSG_LEN];
 char jsonBuffer[MAX_MSG_LEN];
 char payloadBuffer[MAX_MSG_LEN];
 byte foundWifiStation = FALSE;
-byte scanWifi();
+byte scanWifi(int);
 void wifiCallback_OnEvent(WiFiEvent_t);
 byte hasWlanIP = FALSE;
 WiFiClient wifi;
@@ -114,24 +114,25 @@ uint32_t currentNode;
 unsigned long timeTrigger;
 
 
-byte hasMeshIP = FALSE;
-IPAddress meshIP(0,0,0,0);
-
-
 void setup(void)
 {
   Serial.begin(115200);
   while (!Serial);
-  Serial.println();
-  Serial.println("Hi!");
-  Serial.println(GRIOTTE_BUILD_ID);
+
+#ifdef ESP32
+  sleep(5); // lets me restart my serial log tail
+#endif
 
   pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH);
 
+  Serial.println();
+  Serial.println("Hi!");
+  Serial.println(GRIOTTE_BUILD_ID);
+
   // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG | STARTUP
   // ERROR | MESH_STATUS | REMOTE | DEBUG
-  // mesh.setDebugMsgTypes(CONNECTION);
+  // mesh.setDebugMsgTypes(CONNECTION); // set before mesh.init() to see startup messages
 
 #ifdef ESP32
   Serial.println("This is ESP32");
@@ -147,7 +148,9 @@ void setup(void)
   setupIaqSensor();
 #endif
 
+  digitalWrite(LED, LOW);
   setupNetwork();
+  digitalWrite(LED, HIGH);
 
   Serial.println();
 }
@@ -212,24 +215,29 @@ void reminders(unsigned long startedAt) {
     return; // too early
   }
 
+  String meshJson = mesh.subConnectionJson();
   lastReminderTimer = timeTrigger;
-  meshIP = mesh.getAPIP();
 
   Serial.printf(
-    "I am node #%u at %us over MESH/%s (%u subs, stability %d)", currentNode, (int) startedAt/1000,
-    meshIP.toString().c_str(),
-    mesh.subs.size(),
-    mesh.stability
+    "I am node #%u at %us over MESH/%s@%d (%u subs, stability %d)"
+    , currentNode
+    , (int) startedAt/1000
+    , mesh.getAPIP().toString().c_str()
+    , MESH_CHANNEL
+    , mesh.subs.size()
+    , mesh.stability
   );
 
 #ifdef HAS_STATION_CREDS
   if(FALSE == hasWlanIP) {
-    Serial.print(" and no WAN IP");
+    Serial.print(", no WAN IP");
   }
   else {
-    Serial.printf(" and WAN/%s (%d dBm)", wanIP.toString().c_str(), WiFi.RSSI());
+    Serial.printf(", WAN/%s@%d (%d dBm)", wanIP.toString().c_str(), MESH_CHANNEL, WiFi.RSSI());
   }
 #endif
+
+  Serial.printf(" and %uo free HEAP", ESP.getFreeHeap());
   Serial.println();
 
   if(mesh.isRoot()) {
@@ -237,7 +245,7 @@ void reminders(unsigned long startedAt) {
     mesh.sendBroadcast("Hello this is root"); // keep the mesh alive
   }
   else if(FALSE == isRootReachable) {
-    Serial.printf("Root node #%u is not reachable", MESH_ROOT_NODE);
+    Serial.printf("Root node #%u is _not_ reachable", MESH_ROOT_NODE);
     Serial.println();
   }
   else {
@@ -245,8 +253,10 @@ void reminders(unsigned long startedAt) {
     Serial.println();
   }
 
+  Serial.printf("Current mesh is: %s", meshJson.c_str());
+  Serial.println();
+
 #ifdef HAS_STATION_CREDS
-  String meshJson = mesh.subConnectionJson();
   sendHttp(timeTrigger, currentNode, DATASTRUCT_TYPOLOGY, meshJson); // keep the wifi alive
 #endif
 }
@@ -260,12 +270,6 @@ void meshCallback_OnReceived(uint32_t from, String &msg) {
   const unsigned long receivedAt = millis();
 
   hasRootNode(from, TRUE);
-
-  // if(FALSE == hasMeshIP) {
-  //   meshIP = mesh.getAPIP();
-  //   Serial.printf("Obtained MESH IP address %s at %us", meshIP.c_str(), (long) millis()/1000);
-  //   hasMeshIP = TRUE;
-  // }
 
 #ifdef HAS_STATION_CREDS
   byte isSuccess = FALSE;
@@ -282,11 +286,6 @@ void meshCallback_OnNewConnection(uint32_t nodeId) {
   Serial.printf("New mesh connection with #%u", nodeId);
   Serial.println();
   hasRootNode(nodeId, TRUE);
-  // if(FALSE == hasMeshIP) {
-  //   meshIP = mesh.getAPIP();
-  //   Serial.printf("Obtained MESH IP address %s at %us", meshIP.c_str(), (long) millis()/1000);
-  //   hasMeshIP = TRUE;
-  // }
 }
 
 void meshCallback_OnDroppedConnection(uint32_t nodeId) {
@@ -330,7 +329,11 @@ void setupNetwork() {
   Serial.println("I _am_ the root node");
 
   WiFi.onEvent(&wifiCallback_OnEvent);
-  scanWifi(); // debug WiFi issues
+
+  // debug WiFi issues
+  if(!scanWifi(MESH_CHANNEL)) {
+    scanWifi(-1);
+  }
 
   mesh.setRoot(true);
   mesh.stationManual(STATION_SSID, STATION_PASSWORD);
@@ -352,18 +355,14 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
   const unsigned long startedAt = millis();
   const int signalStrength = WiFi.RSSI();
 
-  Serial.printf("%s at %us from #%u: \t%s", dataType, (int) receivedAt/1000, from, msg.c_str());
-  // Serial.println();
+  Serial.printf("HTTP message %s at %us from #%u: \t%s", dataType, (int) receivedAt/1000, from, msg.c_str());
 
   if(MESH_ROOT_NODE != currentNode) {
     Serial.println("\tnot forwarded (not the root node)");
-    // Serial.println();
     return FALSE;
   }
 
   if(FALSE == hasWlanIP) {
-    // Serial.printf("I don't have an IP on the WiFi: %s", STATION_SSID);
-    // Serial.println();
     Serial.println("\tnot forwarded (no WAN IP)");
     return FALSE;
   }
@@ -377,9 +376,6 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
   serializeJson(doc, jsonBuffer);
 
   snprintf(payloadBuffer, MAX_MSG_LEN, "struct=%s&signal=%d&%s=%s", dataType, signalStrength, dataType, jsonBuffer);
-
-  //Serial.printf("Dbg: size=%u, payload=%s", strlen(payloadBuffer), payloadBuffer);
-  //Serial.println();
 
   char userAgent[100];
   sprintf(userAgent, "%s/%u", HTTP_USERAGENT, from);
@@ -439,33 +435,52 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
   return 200 == statusCode;
 }
 
-byte scanWifi() {
+byte scanWifi(int desiredChannel) {
   const unsigned long receivedAt = millis();
-  Serial.println("Starting WiFi scan...");
-  const unsigned int n = WiFi.scanNetworks(false, true);
-  if(0 == n) {
-    Serial.println("No networks found.");
-  } else {
-    foundWifiStation = FALSE;
-    for(unsigned int i = 0; i < n; ++i) {
-      Serial.printf("Network %s on channel %d with BSSID=%s", WiFi.SSID(i).c_str(), WiFi.channel(i), WiFi.BSSIDstr(i).c_str());
-      Serial.println();
-      if(0 == strcmp(STATION_SSID, WiFi.SSID(i).c_str()) && MESH_CHANNEL == WiFi.channel(i)) {
-        foundWifiStation = TRUE;
-        // Serial.printf("Found network %s on channel %d with BSSID=%s", WiFi.SSID(i).c_str(), WiFi.channel(i), WiFi.BSSIDstr(i).c_str());
-        // Serial.println();
-        break;
-      }
-    }
-    if(FALSE == foundWifiStation) {
-      Serial.printf("Network %s NOT FOUND on channel %d out of %u networks", STATION_SSID, MESH_CHANNEL, n);
-      Serial.println();
+  unsigned int nbNetworks;
+  int foundChannel = -1;
+
+  if(-1 == desiredChannel) {
+    Serial.print("Starting WiFi scan on all channels...");
+    nbNetworks = WiFi.scanNetworks(false, true, false, WIFI_SCAN_MAX_MS_PER_CHAN);
+  }
+  else {
+    Serial.printf("Starting WiFi scan on channel %d...", desiredChannel);
+    nbNetworks = WiFi.scanNetworks(false, true, false, WIFI_SCAN_MAX_MS_PER_CHAN, desiredChannel);
+  }
+
+  if(0 == nbNetworks) {
+    Serial.printf("\tNo networks in range in %ums", millis() - receivedAt);
+    Serial.println();
+    return false;
+  }
+
+  Serial.println();
+  for(unsigned int i = 0; i < nbNetworks; ++i) {
+    Serial.printf("Network %s on channel %d with BSSID=%s", WiFi.SSID(i).c_str(), WiFi.channel(i), WiFi.BSSIDstr(i).c_str());
+    Serial.println();
+    if(0 == strcmp(STATION_SSID, WiFi.SSID(i).c_str()) && (-1 == desiredChannel || WiFi.channel(i) && desiredChannel)) {
+      foundChannel = i;
+      break;
     }
   }
-  const unsigned long timeSpent = millis() - receivedAt;
-  Serial.printf("WiFi scan ended in %ums", timeSpent);
+
+  if(-1 != foundChannel) {
+    Serial.printf("Found network %s on channel %d with BSSID=%s", WiFi.SSID(foundChannel).c_str(), WiFi.channel(foundChannel), WiFi.BSSIDstr(foundChannel).c_str());
+    Serial.println();
+  }
+  else if(-1 == desiredChannel) {
+    Serial.printf("Network %s NOT FOUND out of %u networks", STATION_SSID, nbNetworks);
+    Serial.println();
+  }
+  else {
+    Serial.printf("Network %s NOT FOUND on channel %d out of %u networks", STATION_SSID, desiredChannel, nbNetworks);
+    Serial.println();
+  }
+
+  Serial.printf("WiFi scan ended in %ums", millis() - receivedAt);
   Serial.println();
-  return foundWifiStation;
+  return (-1 != foundChannel);
 }
 
 /**
@@ -637,10 +652,9 @@ void formatOutputMsg(unsigned long readAt) {
 
   sprintf(
     outBuffer,
-    // "%s [hPa]; %s hum. [%%]; %s temp. [°C]; %s IAQ; %s eCO² [PPM]; %s VOC [PPM]; %u/3 iAQ accuracy; %u free heap [o]; %s uptime [s]",
-    "%s;%s;%s;%s;%s;%s;%u;%u;%s",
-    mPressureBuffer, mHumidityBuffer, temperatureBuffer, mIaqBuffer, mCo2Buffer, mVocBuffer,
-    iaqSensor.iaqAccuracy, ESP.getFreeHeap(), mTimeBuffer
+     "%s;%s;%s;%s;%s;%s;%u;%u;%s",
+      mPressureBuffer, mHumidityBuffer, temperatureBuffer, mIaqBuffer, mCo2Buffer, mVocBuffer,
+      iaqSensor.iaqAccuracy, ESP.getFreeHeap(), mTimeBuffer
   );
 
   /*
@@ -666,20 +680,13 @@ void checkSensorData(unsigned long startedAt) {
     checkIaqSensorStatus();
 
     if(iaqSensor.run(startedAt)) { // If new data is available
-      digitalWrite(LED, LOW);
-      // Serial.printf("[Heap before run] Free: %u", ESP.getFreeHeap());
-      // Serial.println();
-
       lastReadData = startedAt;
       sensorFailCount = 0;
 
-      formatOutputMsg(startedAt);
+      formatOutputMsg(startedAt); // sets outBuffer
 
       mesh.sendBroadcast(outBuffer);
       Serial.println(outBuffer);
-      digitalWrite(LED, HIGH);
-      // Serial.printf("[Heap after run] Free: %u", ESP.getFreeHeap());
-      // Serial.println();
     }
     else if(startedAt - lastReadData < 3*1100) {
       // never mind, sensor has values about every 3 seconds
@@ -700,7 +707,7 @@ void checkSensorData(unsigned long startedAt) {
       Serial.printf("Sensor read failed %u times in a row", sensorFailCount);
       Serial.println();
       if(SENSOR_FAIL_THRESHOLD < sensorFailCount) {
-        sprintf(outBuffer, "Sensor unresponsive. Rebooting...");
+        sprintf(outBuffer, "Sensor unresponsive. Consider rebooting?");
         Serial.println(outBuffer);
         // delay(500);
         // ESP.restart();  // or soft-reset just the sensor if possible
