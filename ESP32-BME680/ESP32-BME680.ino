@@ -652,9 +652,11 @@ void formatOutputMsg(unsigned long readAt) {
 
   sprintf(
     outBuffer,
-     "%s;%s;%s;%s;%s;%s;%u;%u;%s",
-      mPressureBuffer, mHumidityBuffer, temperatureBuffer, mIaqBuffer, mCo2Buffer, mVocBuffer,
-      iaqSensor.iaqAccuracy, ESP.getFreeHeap(), mTimeBuffer
+    "%s;%s;%s;%s;%s;%s;%u;%u;%s;%u;%u;%s"
+    , mPressureBuffer, mHumidityBuffer, temperatureBuffer, mIaqBuffer, mCo2Buffer, mVocBuffer, iaqSensor.iaqAccuracy
+    , ESP.getFreeHeap()
+    , mesh.getAPIP().toString().c_str(), mesh.subs.size(), mesh.stability
+    , mTimeBuffer
   );
 
   /*

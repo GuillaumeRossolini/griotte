@@ -1,5 +1,6 @@
 .git
 .gitignore
+Dockerfile
 doc
 linux
 ESP32-BME680

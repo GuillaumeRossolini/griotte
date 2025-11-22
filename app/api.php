@@ -1,7 +1,41 @@
 <?php
 
-header('Content-Type: text/plain; charset=utf-8', true);
+/**
+ * How to read this script: follow the goto's
+ */
 
+header('Content-Type: text/plain; charset=utf-8', true); // default response type
+
+goto selftest;
+
+
+
+/**
+ * This section attempts to identify global permission errors
+ */
+selftest:
+
+foreach(['GRIOTTE_RUN', 'GRIOTTE_DB'] as $_constant)
+if(!file_exists(constant($_constant))) {
+  trace(LOG_ERR, 'Folder %s not found: %s', $_constant, constant($_constant));
+  http(500, 'ko');
+  exit;
+}
+
+if(!is_writable(constant($_constant))) {
+  trace(LOG_ERR, 'Folder %s not writable: %s', $_constant, constant($_constant));
+  http(500, 'ko');
+  exit;
+}
+
+goto receive;
+
+
+
+/**
+ * This section validates the input payload
+ */
+receive:
 
 if(empty($_POST['struct'])) {
   trace(LOG_ERR, 'Missing "struct" field in the request body: %s', json_encode(array_keys($_POST)) ?: 'n/a');
@@ -9,7 +43,20 @@ if(empty($_POST['struct'])) {
   exit;
 }
 
-$payload_struct = $_POST['struct'];
+if(!in_array($_POST['struct'], GRIOTTE_STRUCT_ALLOWLIST, true)) {
+  trace(
+    LOG_ERR,
+    'Payload was %s but can only be one of (%d): %s',
+    json_encode($_POST['struct']),
+    count(GRIOTTE_STRUCT_ALLOWLIST),
+    implode(', ', GRIOTTE_STRUCT_ALLOWLIST)
+  );
+
+  http(400, 'ko');
+  exit;
+}
+
+$payload_struct = $_POST['struct']; // this appears both as a value and as a field
 if(empty($_POST[$payload_struct])) {
   trace(LOG_ERR, 'Missing "%s" field in the request body: %s', $payload_struct, json_encode(array_keys($_POST)) ?: 'n/a');
   http(400, 'ko');
@@ -70,6 +117,16 @@ if(!in_array($payload_struct, $types_allowlist, true)) {
   exit;
 }
 
+goto parse;
+
+
+
+/**
+ * This section parses the payload into fields
+ */
+parse:
+
+$nb_fields = 12; // hardcoded from the regexp below
 
 $pattern = <<<EOT
 says:\s*
@@ -81,6 +138,9 @@ says:\s*
 ;([0-9.]+)   # VOC
 ;(\d+)       # IAQ accuracy
 ;(\d+)       # free HEAP
+;([0-9.]+)   # mesh IP
+;(\d+)       # mesh nb subs
+;(\d+)       # mesh stability
 ;(\d+)       # uptime
 EOT;
 
@@ -91,28 +151,18 @@ if(!preg_match("~$pattern~x", $msg, $readings)) {
 }
 
 
-$readings = array_slice($readings, 1, 9);
+$readings = array_pad($readings, $nb_fields, 'NULL');
+$readings = array_slice($readings, 1, $nb_fields);
+if(!empty($readings[8])) {
+  $readings[8] = ip2long($readings[8]);
+}
+
 $readings = array_map('floatval', $readings);
-$readings = array_pad($readings, 9, 'NULL');
 $griotte_nb = floatval($griotte_nb);
 
-http(200, 'ok');
+http(200, 'ok'); // presume OK until told otherwise
 
 
-if(!file_exists(GRIOTTE_RUN)) {
-  trace(LOG_ERR, 'Run folder not found: %s', GRIOTTE_RUN);
-  http(500, 'ko');
-  exit;
-}
-
-if(!is_writable(GRIOTTE_RUN)) {
-  trace(LOG_ERR, 'Run folder not writable: %s', GRIOTTE_RUN);
-  http(500, 'ko');
-  exit;
-}
-
-
-$buffer_filename = sprintf('%s/buffer.csv', GRIOTTE_FOLDER);
 
 $run_filenames = [
   'buffer' => sprintf('%s/buffer.run', GRIOTTE_RUN),
@@ -148,6 +198,8 @@ goto finish;
  * so that they can be inserted into the DBs in batches (higher resource disk writes, seldom called)
  */
 buffer:
+
+$buffer_filename = sprintf('%s/buffer.csv', GRIOTTE_RUN);
 
 // also creates the file if it does not exist
 $buffer_handle = fopen($buffer_filename, 'a');
@@ -202,17 +254,17 @@ if(!filesize($buffer_filename)) {
   goto finish;
 }
 
-// let's save every reading in a faily database, as well as a giant all-time database
+// let's save every reading in a daily database, as well as a giant all-time database
 // and also in the databases from the previous and the next day to avoid timezone issues
 
 $yesterday = strtotime('yesterday');
 $tomorrow = strtotime('tomorrow');
 
 $db_filenames = [
-  sprintf('%s/db/v1/%d/%s/%s.sq3', GRIOTTE_FOLDER, date('Y', $yesterday), date('m-F', $yesterday), date('Y-m-d', $yesterday)),
-  sprintf('%s/db/v1/%d/%s/%s.sq3', GRIOTTE_FOLDER, date('Y'), date('m-F'), date('Y-m-d')),
-  sprintf('%s/db/v1/%d/%s/%s.sq3', GRIOTTE_FOLDER, date('Y', $tomorrow), date('m-F', $tomorrow), date('Y-m-d', $tomorrow)),
-  sprintf('%s/readings.sq3', GRIOTTE_FOLDER),
+  sprintf(GRIOTTE_DAILY_DB_TPL, GRIOTTE_DB, date('Y', $yesterday), date('m-F', $yesterday), date('Y-m-d', $yesterday)),
+  sprintf(GRIOTTE_DAILY_DB_TPL, GRIOTTE_DB, date('Y'), date('m-F'), date('Y-m-d')),
+  sprintf(GRIOTTE_DAILY_DB_TPL, GRIOTTE_DB, date('Y', $tomorrow), date('m-F', $tomorrow), date('Y-m-d', $tomorrow)),
+  sprintf('%s/readings.sq3', GRIOTTE_DB),
 ];
 
 // prepare the DB file handles and SQL statements
@@ -247,6 +299,7 @@ foreach($db_filenames as $_db_idx => $_db_filename) {
   trace(LOG_DEBUG, 'Import result to %s was: exit %d, output: %s', $_db_filename, $res, json_encode($output));
   if(0 !== $res) {
     trace(LOG_ERR, 'Unable to import data into %s: %s; cmd was: %s', $_db_filename, json_encode($output), $shellcmd);
+
     http(500, 'ko');
     exit;
   }

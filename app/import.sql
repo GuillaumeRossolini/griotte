@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS sensor_reading (
     voc REAL,
     accuracy INTEGER,
     heap INTEGER,
+    ip INTEGER,
+    subs INTEGER,
+    stability INTEGER,
     uptime INTEGER
 );
 
@@ -24,6 +27,9 @@ CREATE TEMPORARY TABLE IF NOT EXISTS csv_import (
     voc REAL,
     accuracy INTEGER,
     heap INTEGER,
+    ip INTEGER,
+    subs INTEGER,
+    stability INTEGER,
     uptime INTEGER
 );
 
@@ -37,7 +43,7 @@ DELETE FROM csv_import;
 
 SELECT 'Importing ' || COUNT(1) || ' rows...' FROM csv_import;
 
-INSERT INTO sensor_reading (created_at, node, hpa, hum, temp, iaq, eco2, voc, accuracy, heap, uptime)
-SELECT datetime(created_at, 'unixepoch'), node, hpa, hum, temp, iaq, eco2, voc, accuracy, heap, uptime
+INSERT INTO sensor_reading (created_at, node, hpa, hum, temp, iaq, eco2, voc, accuracy, heap, ip, subs, stability, uptime)
+SELECT datetime(created_at, 'unixepoch'), node, hpa, hum, temp, iaq, eco2, voc, accuracy, heap, ip, subs, stability, uptime
 FROM csv_import
-ORDER BY node, created_at;
+ORDER BY created_at, node;

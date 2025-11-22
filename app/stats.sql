@@ -1,11 +1,11 @@
--- Get readings since a specific date, grouped by node
+-- Get readings since a specific date, grouped by date and node
 -- With a CTE over LAG() to identify reboot count and last date
 
 WITH _readings AS (
   SELECT node, created_at, heap, uptime
     , LAG (uptime) OVER (PARTITION BY node ORDER BY created_at) AS lag
   FROM sensor_reading
-  WHERE DATE(created_at) = '2025-06-08'
+--  WHERE DATE(created_at) = '2025-06-08'
 )
 , _reboots AS (
   SELECT node, created_at, lag
@@ -24,5 +24,5 @@ SELECT
   COUNT(1) AS readings
 FROM _readings
 LEFT JOIN _reboots USING (node, created_at)
-GROUP BY node
-ORDER BY node;
+GROUP BY DATE(created_at), node
+ORDER BY DATE(created_at) DESC, node ASC;

@@ -2,7 +2,7 @@
 
 set -eCfu
 
-buffer_filename="${GRIOTTE_FOLDER}/buffer.csv"
+buffer_filename="${GRIOTTE_RUN}/buffer.csv"
 
 if [ -f $buffer_filename ]; then
   cat "$buffer_filename" \

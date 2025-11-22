@@ -138,13 +138,10 @@ Which translates to the following URLs, separated by a comma:
 The Board Managers are what allow you to choose your ESP8266 and ESP32 devices in Arduino IDE so that you can interact with them: flash, debug _etc._ Flashing means writing the program to the device, and debugging (to me) mostly means having logs show up on the serial console.
 
 The following are my installed Board Manager versions:
-- Arduino ESP32 Boards v2.0.17 by Arduino
-- ESP32 v2.0.17 by Espressif systems
+- ESP32 v3.0.7 by Espressif systems
 - ESP8266 v3.1.2 by ESP8266 community
 
-(one of these is probably not needed any more; you'll have to check depending the micro controllers you do buy, since their documentation supersedes this list)
-
-If memory serves, the ESP32 board manager had to be held back even though there is a newer major version available.
+The ESP32 board manager had to be held back even though there is a newer version available: I got crashed on reboot after v3.0.
 
 My best guess at the actual libraries I was required to install were (some are installed automatically by Arduino IDE from the Includes, others aren't):
 
@@ -198,7 +195,6 @@ This is tough because the driver names in Arduino IDE tend to change over time. 
 |-|-|
 |ESP8266|LOLIN(WEMOS) D1 mini (clone)|
 |ESP32-C3|LOLIN C3 Mini|
-|ESP32-C3|Heltec WiFi LoRa 32(V3)|
 
 You can select this in Arduino IDE a few different ways. The most straightforward way is using the drop-down list near the menus at the top of the program: "Select other board and port..."
 
@@ -323,6 +319,7 @@ Aside from the obvious performance benefits, I can also observe more easily what
 * `watch cat buffer.csv`
 * `watch wc -l buffer.csv`
 * `watch ls -alh buffer.csv readings.sq3 run/* db/v1/*/*/$(date +%Y-%m-%d)*`
+* `time /usr/local/bin/dbstats`
 
 
 ## F- Linux service components
@@ -349,6 +346,18 @@ sudo systemctl daemon-reload
 sudo systemctl restart griotte.service
 ```
 
+Send the project over ssh to the pi:
+```bash
+time rsync -av -e ssh \
+  --exclude='.git' \
+  --exclude='.gitignore' \
+  --exclude='doc' \
+  --exclude='ESP32-BME680' \
+  --exclude='*.griot.*' \
+  --exclude='*.mariot.*' \
+  griotte griotte:/home/pi/
+```
+
 
 ## G- Database backups
 
@@ -363,12 +372,12 @@ This is the `sync-readings.sh` script:
 #!/usr/bin/env bash
 
 time scp \
-	pihole-gr:/home/pi/griotte/db/v1/*/*/*.sq3 \
-	/mnt/c/Users/IoT/Documents/bme680-readings/v1/
+	"pihole-gr:/home/pi/griotte/db/v1/*/*/*.sq3" \
+	"/mnt/c/Users/IoT/Documents/bme680-readings/v1/"
 
 time scp \
-	pihole-gr:/home/pi/griotte/*.sq3 \
-	/mnt/c/Users/IoT/Documents/bme680-readings/big_$(date +%Y-%m-%dT%H-%M-%S).sq3
+	"pihole-gr:/home/pi/griotte/*.sq3" \
+	"/mnt/c/Users/IoT/Documents/bme680-readings/big_$(date +%Y-%m-%dT%H-%M-%S).sq3"
 
 find \
 	/mnt/c/Users/IoT/Documents/bme680-readings \
@@ -383,10 +392,7 @@ find \
 * improve the Docker docs
 * write the Getting Started docs
 * refactor the docs
-* when a sensor starts returning incorrect readings, it should recalibrate or self reset
+* when a sensor starts returning incorrect readings, its node should recalibrate or self reset
 * when a node fails to reconnect to the mesh, it should self reset
 * changes to the mesh topology are sent over HTTP (keeps the mesh alive) but currently not logged to the database
-* the ESP32 should forward readings to the Raspberry Pi Zero only when the WAN WiFi is ready
-* clean up the console traces, especially when a network is down
-* log the IP of the original node in the database (?)
-* write some sqlite sample queries
+* batch the HTTP requests to allow for more nodes within the 3s window, given the 250ms average time per request

@@ -1,22 +1,24 @@
 version: "3"
 
-# docker build -t griotte:2025-09-07 .
+# docker build -t griotte:2025-11-16_14-20 .
 # docker stack deploy -c docker-compose.yml --prune griotte
 
 services:
 
   web:
-    image: griotte:2025-09-07
+    image: griotte:2025-11-16_14-20
     tmpfs:
       - /tmp
       - /var/www/run
     ports:
-      - "80:8081"
+      - "8081:80"
     volumes:
-      - '/home/griotte/src/app/config.gr.ini:/var/www/app/config.ini'
-      - '/home/griotte/volumes/db:/var/www/db'
+      - '/home/pi/griotte/app/config.griot.ini:/var/www/app/config.ini'
+      - '/home/pi/griotte/volumes/db:/var/www/db'
     environment:
       GRIOTTE_LABEL: Griotte
       GRIOTTE_FOLDER: /var/www
-      GRIOTTE_BUFFER_DELAY: 1
-      # GRIOTTE_NODE_DELAY: 1
+      GRIOTTE_DB: /var/www/db
+      GRIOTTE_RUN: /var/www/run
+      GRIOTTE_BUFFER_DELAY: 300
+      GRIOTTE_NODE_DELAY: 60
