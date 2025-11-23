@@ -395,4 +395,4 @@ find \
 * when a sensor starts returning incorrect readings, its node should recalibrate or self reset
 * when a node fails to reconnect to the mesh, it should self reset
 * changes to the mesh topology are sent over HTTP (keeps the mesh alive) but currently not logged to the database
-* batch the HTTP requests to allow for more nodes within the 3s window, given the 250ms average time per request
+* batch the ESP32>RPI0 HTTP requests to better scale the number of nodes in the mesh
