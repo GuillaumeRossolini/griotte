@@ -41,7 +41,9 @@ define('GRIOTTE_LABEL', getenv('GRIOTTE_LABEL') ?: 'Griotte');
 /**
  * Allowlist of struct types for the input payload
  */
-define('GRIOTTE_STRUCT_ALLOWLIST', ['bme680']);
+define('GRIOTTE_STRUCT_ALLOWLIST', ['bme680', 'typology']);
 
 
 define('GRIOTTE_DAILY_DB_PATH_TPL', '%s/daily/%d/%s/%s.sq3');
+define('GRIOTTE_RUNFILE_BUFFER_PATH_TPL', '%s/%s-buffer.run');
+define('GRIOTTE_RUNFILE_DATA_PATH_TPL', '%s/%s-data-%s.run');

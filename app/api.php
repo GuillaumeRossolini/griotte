@@ -35,7 +35,7 @@ if(!in_array($_POST['struct'], GRIOTTE_STRUCT_ALLOWLIST, true)) {
 }
 
 $payload_struct = $_POST['struct']; // this appears both as a value and as a field
-if(empty($_POST[$payload_struct])) {
+if(!array_key_exists($payload_struct, $_POST)) {
   trace(LOG_ERR, 'Missing "%s" field in the request body: %s', $payload_struct, json_encode(array_keys($_POST)) ?: 'n/a');
   http(400, 'ko');
   exit;
@@ -84,11 +84,6 @@ goto receive;
  */
 receive:
 
-$gateway_uptime = null;
-if(!empty($_POST['uptime'])) {
-  $gateway_uptime = (int) $_POST['uptime'];
-}
-
 $gateway_signal = null;
 if(!empty($_POST['signal'])) {
   $gateway_signal = (int) $_POST['signal'];
@@ -97,31 +92,53 @@ if(!empty($_POST['signal'])) {
 $agent_name = null;
 $griotte_nb = null;
 list($agent_name, $griotte_nb) = explode('/', $_SERVER['HTTP_USER_AGENT']);
+$griotte_nb = floatval($griotte_nb);
+
+define('GRIOTTE_SERIAL_NB', $griotte_nb);
+define('GRIOTTE_PAYLOAD_STRUCT', $payload_struct);
+define('GRIOTTE_PAYLOAD_RAW', base64_decode($payload['msg']));
 
 $msg = sprintf(
   '%s #%s (%d dB) says: %s',
   $agent_name ?: 'n/a',
-  $griotte_nb ?: 'n/a',
+  GRIOTTE_SERIAL_NB ?: 'n/a',
   $gateway_signal ?: 'n/a',
-  base64_decode($payload['msg'])
+  GRIOTTE_PAYLOAD_RAW
 );
 
-trace(LOG_INFO, 'Received %s payload: %s', $payload_struct, $msg);
+trace(LOG_INFO, 'Received %s payload: %s', GRIOTTE_PAYLOAD_STRUCT, $msg);
 
 
-switch($payload_struct) {
-  case 'bme680';
+switch(GRIOTTE_PAYLOAD_STRUCT) {
+  case 'bme680':
     goto bme680;
     break;
 
-  default: // shoudn't happen: already handled in the self-test
-    trace(LOG_ERR, 'Payload type "%s" is not handled yet', $payload_struct);
-    http(400, 'ko');
-    exit;
+  case 'typology':
+    goto typology;
+    break;
 
+  default: // shouldn't happen: already handled by the selftest
+    finish(400, 'never mind');
 }
 
 
+
+
+/**
+ * This section parses the typology payload into fields
+ */
+typology:
+
+$typology = json_decode(GRIOTTE_PAYLOAD_RAW, true);
+if(false === $typology) {
+  trace(LOG_ERR, 'Unable to parse mesh typology');
+  http(400, 'ko');
+  exit;
+}
+
+trace(LOG_ERR, 'Ignoring incoming mesh typology payload');
+finish(200, 'thanks');
 
 
 
@@ -133,8 +150,7 @@ bme680:
 $nb_fields = 12; // hardcoded from the regexp below
 
 $pattern = <<<EOT
-says:\s*
-(\d+)        # pressure
+^(\d+)        # pressure
 ;(\d+)       # humidity
 ;(\d+)       # temperature
 ;([0-9.]+)   # IAQ
@@ -148,8 +164,8 @@ says:\s*
 ;(\d+)       # uptime
 EOT;
 
-if(!preg_match("~$pattern~x", $msg, $readings)) {
-  trace(LOG_ERR, 'Unable to match reading pattern');
+if(!preg_match("~$pattern~x", GRIOTTE_PAYLOAD_RAW, $readings)) {
+  trace(LOG_ERR, 'Unable to match readings pattern');
   http(400, 'ko');
   exit;
 }
@@ -162,38 +178,36 @@ if(!empty($readings[8])) {
 }
 
 $readings = array_map('floatval', $readings);
-$griotte_nb = floatval($griotte_nb);
 
 http(200); // presume OK until told otherwise
 
 
-
 $run_filenames = [
-  'buffer' => sprintf('%s/buffer.run', GRIOTTE_RUN_PATH),
-  'bme680' => sprintf('%s/%s.run', GRIOTTE_RUN_PATH, $griotte_nb),
+  'buffer' => sprintf(GRIOTTE_DB_PATH, GRIOTTE_RUN_PATH, GRIOTTE_PAYLOAD_STRUCT),
+  'bme680' => sprintf(GRIOTTE_RUNFILE_DATA_PATH_TPL, GRIOTTE_RUN_PATH, GRIOTTE_PAYLOAD_STRUCT, GRIOTTE_SERIAL_NB),
 ];
 
 if(!file_exists($run_filenames['bme680'])) {
-  trace(LOG_DEBUG, 'No run bme680 file for node #%s: saving data', $griotte_nb);
+  trace(LOG_DEBUG, 'No bme680 run file for node #%s: saving data', GRIOTTE_SERIAL_NB);
   goto buffer;
 }
 
 $filemtime = filemtime($run_filenames['bme680']);
 if(false === $filemtime) {
-  trace(LOG_ERR, 'Unable to get run bme680 file stats: %s', $run_filenames['bme680']);
+  trace(LOG_ERR, 'Unable to get bme680 run file stats: %s', $run_filenames['bme680']);
   http(500, 'ko');
   exit;
 }
 
 if($_SERVER['REQUEST_TIME'] >= ($filemtime + GRIOTTE_NODE_DELAY)) {
-  trace(LOG_DEBUG, 'Stale readings for node #%s (last modified at %s): saving new data', $griotte_nb, date('Y-m-d H:i:s', $filemtime));
+  trace(LOG_DEBUG, 'Stale readings for node #%s (last modified at %s): saving new data', GRIOTTE_SERIAL_NB, date('Y-m-d H:i:s', $filemtime));
   goto buffer;
 }
 
 
-trace(LOG_DEBUG, 'Readings still valid for node #%s (last modified at %s): skipping new data', $griotte_nb, date('Y-m-d H:i:s', $filemtime));
+trace(LOG_DEBUG, 'Readings still valid for node #%s (last modified at %s): skipping new data', GRIOTTE_SERIAL_NB, date('Y-m-d H:i:s', $filemtime));
 
-goto finish;
+finish(200);
 
 
 
@@ -213,7 +227,7 @@ if(!$buffer_handle) {
   exit;
 }
 
-$buffer_data = array_merge([$_SERVER['REQUEST_TIME'], $griotte_nb], $readings);
+$buffer_data = array_merge([$_SERVER['REQUEST_TIME'], GRIOTTE_SERIAL_NB], $readings);
 if(!fwrite($buffer_handle, implode("\t", $buffer_data).PHP_EOL)) {
   trace(LOG_ERR, 'Unable to write to buffer file: %s', $buffer_filename);
   http(500, 'ko');
@@ -225,8 +239,8 @@ fclose($buffer_handle);
 $filemtime = filemtime($run_filenames['buffer']);
 
 if(false === $filemtime) {
-  if(!touch($run_filenames['bme680'], $_SERVER['REQUEST_TIME'])) {
-    trace(LOG_ERR, 'Unable to create run bme680 file: %s', $run_filenames['bme680']);
+  if(!touch($run_filenames[GRIOTTE_PAYLOAD_STRUCT], $_SERVER['REQUEST_TIME'])) {
+    trace(LOG_ERR, 'Unable to create run %s file: %s', GRIOTTE_PAYLOAD_STRUCT, $run_filenames[GRIOTTE_PAYLOAD_STRUCT]);
     http(500, 'ko');
     exit;
   }
@@ -237,13 +251,13 @@ if($_SERVER['REQUEST_TIME'] >= ($filemtime + GRIOTTE_BUFFER_DELAY)) {
   goto commit;
 }
 
-if(!touch($run_filenames['bme680'], $_SERVER['REQUEST_TIME'])) {
-  trace(LOG_ERR, 'Unable to create run bme680 file: %s', $run_filenames['bme680']);
+if(!touch($run_filenames[GRIOTTE_PAYLOAD_STRUCT], $_SERVER['REQUEST_TIME'])) {
+  trace(LOG_ERR, 'Unable to create run %s file: %s', GRIOTTE_PAYLOAD_STRUCT, $run_filenames[GRIOTTE_PAYLOAD_STRUCT]);
   http(500, 'ko');
   exit;
 }
 
-goto finish;
+finish(200);
 
 
 
@@ -254,8 +268,8 @@ commit:
 
 $buffer_handle = fopen($buffer_filename, 'r');
 if(!filesize($buffer_filename)) {
-  trace(LOG_ERR, 'Buffer file is empty: %s', $buffer_filename);
-  goto finish;
+  trace(LOG_ERR, 'Buffer file is empty, nothing to commit: %s', $buffer_filename);
+  finish(200);
 }
 
 // let's save every reading in a daily database, as well as a giant all-time database
@@ -317,25 +331,26 @@ if(!fopen($buffer_filename, 'w')) {
 }
 
 if(!touch($run_filenames['buffer'], $_SERVER['REQUEST_TIME'])) {
-  trace(LOG_ERR, 'Unable to create run buffer file: %s', $run_filenames['bme680']);
+  trace(LOG_ERR, 'Unable to create %s run buffer file: %s', GRIOTTE_PAYLOAD_STRUCT, $run_filenames[GRIOTTE_PAYLOAD_STRUCT]);
   http(500, 'ko');
   exit;
 }
 
-if(!touch($run_filenames['bme680'], $_SERVER['REQUEST_TIME'])) {
-  trace(LOG_ERR, 'Unable to create run data file: %s', $run_filenames['bme680']);
+if(!touch($run_filenames[GRIOTTE_PAYLOAD_STRUCT], $_SERVER['REQUEST_TIME'])) {
+  trace(LOG_ERR, 'Unable to create %s run data file: %s', GRIOTTE_PAYLOAD_STRUCT, $run_filenames[GRIOTTE_PAYLOAD_STRUCT]);
   http(500, 'ko');
   exit;
 }
 
-goto finish;
+finish(201);
 
 
 
 /**
  * End of the script
  */
-finish:
-// trace(LOG_DEBUG, 'Response sent after %0.3fms', microtime(true)-GRIOTTE_STARTTIME);
-http(201, 'ok');
-exit;
+function finish($response_code, $reponse_body='ok') {
+  // trace(LOG_DEBUG, 'Response sent after %0.3fms', microtime(true)-GRIOTTE_STARTTIME);
+  http($response_code, $reponse_body);
+  exit;
+}
