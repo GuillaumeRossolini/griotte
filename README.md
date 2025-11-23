@@ -316,10 +316,10 @@ But with this method:
 The web server buffers any incoming HTTP requests as well (because it is a single PHP process by design). Therefore, readings that may have come in while the commit was in progress, are processed quickly as soon as the commit is done. So, even the small delay caused by the commit is irrelevant to the timestamps.
 
 Aside from the obvious performance benefits, I can also observe more easily what is happening with a few easy commands:
-* `watch cat buffer.csv`
-* `watch wc -l buffer.csv`
-* `watch ls -alh buffer.csv readings.sq3 run/* db/v1/*/*/$(date +%Y-%m-%d)*`
-* `time /usr/local/bin/dbstats`
+* `watch "cat run/buffer.csv | expand"`
+* `watch wc -l run/buffer.csv`
+* `watch ls -alh db/readings.sq3 run/* db/daily/*/*/$(date +%Y-%m-%d)*`
+* `time /usr/local/bin/dbstats # on the host`
 
 
 ## F- Linux service components
@@ -372,11 +372,11 @@ This is the `sync-readings.sh` script:
 #!/usr/bin/env bash
 
 time scp \
-	"pihole-gr:/home/pi/griotte/db/v1/*/*/*.sq3" \
-	"/mnt/c/Users/IoT/Documents/bme680-readings/v1/"
+	"pi.griot.local:/home/pi/griotte/volumes/db/daily/*/*/*.sq3" \
+	"/mnt/c/Users/IoT/Documents/bme680-readings/daily/"
 
 time scp \
-	"pihole-gr:/home/pi/griotte/*.sq3" \
+	"pi.griot.local:/home/pi/griotte/volumes/db/readings.sq3" \
 	"/mnt/c/Users/IoT/Documents/bme680-readings/big_$(date +%Y-%m-%dT%H-%M-%S).sq3"
 
 find \
