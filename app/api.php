@@ -61,7 +61,7 @@ if(!preg_match($regexp, $_SERVER['HTTP_USER_AGENT'], $griotte)) {
   exit;
 }
 
-foreach(['GRIOTTE_RUN', 'GRIOTTE_DB'] as $_constant) {
+foreach(['GRIOTTE_RUN_PATH', 'GRIOTTE_DB_PATH'] as $_constant) {
   if(!file_exists(constant($_constant))) {
     trace(LOG_ERR, 'Folder %s not found: %s', $_constant, constant($_constant));
     http(500, 'ko');
@@ -169,8 +169,8 @@ http(200); // presume OK until told otherwise
 
 
 $run_filenames = [
-  'buffer' => sprintf('%s/buffer.run', GRIOTTE_RUN),
-  'bme680' => sprintf('%s/%s.run', GRIOTTE_RUN, $griotte_nb),
+  'buffer' => sprintf('%s/buffer.run', GRIOTTE_RUN_PATH),
+  'bme680' => sprintf('%s/%s.run', GRIOTTE_RUN_PATH, $griotte_nb),
 ];
 
 if(!file_exists($run_filenames['bme680'])) {
@@ -203,7 +203,7 @@ goto finish;
  */
 buffer:
 
-$buffer_filename = sprintf('%s/buffer.csv', GRIOTTE_RUN);
+$buffer_filename = sprintf('%s/buffer.csv', GRIOTTE_RUN_PATH);
 
 // also creates the file if it does not exist
 $buffer_handle = fopen($buffer_filename, 'a');
@@ -265,10 +265,10 @@ $yesterday = strtotime('yesterday');
 $tomorrow = strtotime('tomorrow');
 
 $db_filenames = [
-  sprintf(GRIOTTE_DAILY_DB_TPL, GRIOTTE_DB, date('Y', $yesterday), date('m-F', $yesterday), date('Y-m-d', $yesterday)),
-  sprintf(GRIOTTE_DAILY_DB_TPL, GRIOTTE_DB, date('Y'), date('m-F'), date('Y-m-d')),
-  sprintf(GRIOTTE_DAILY_DB_TPL, GRIOTTE_DB, date('Y', $tomorrow), date('m-F', $tomorrow), date('Y-m-d', $tomorrow)),
-  sprintf('%s/readings.sq3', GRIOTTE_DB),
+  sprintf(GRIOTTE_DAILY_DB_PATH_TPL, GRIOTTE_DB_PATH, date('Y', $yesterday), date('m-F', $yesterday), date('Y-m-d', $yesterday)),
+  sprintf(GRIOTTE_DAILY_DB_PATH_TPL, GRIOTTE_DB_PATH, date('Y'), date('m-F'), date('Y-m-d')),
+  sprintf(GRIOTTE_DAILY_DB_PATH_TPL, GRIOTTE_DB_PATH, date('Y', $tomorrow), date('m-F', $tomorrow), date('Y-m-d', $tomorrow)),
+  sprintf('%s/readings.sq3', GRIOTTE_DB_PATH),
 ];
 
 // prepare the DB file handles and SQL statements

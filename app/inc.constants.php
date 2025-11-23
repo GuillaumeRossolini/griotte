@@ -8,18 +8,18 @@ define('GRIOTTE_STARTTIME', microtime(true));
 /**
  * System path of the project
  */
-define('GRIOTTE_FOLDER', getenv('GRIOTTE_FOLDER') ?: realpath(__DIR__.'/..'));
+define('GRIOTTE_ROOT_PATH', getenv('GRIOTTE_ROOT_PATH') ?: realpath(__DIR__.'/..'));
 
 /**
  * System path of the databse files
  */
-define('GRIOTTE_DB', getenv('GRIOTTE_DB') ?: realpath(GRIOTTE_FOLDER.'/db'));
+define('GRIOTTE_DB_PATH', getenv('GRIOTTE_DB_PATH') ?: realpath(GRIOTTE_ROOT_PATH.'/db'));
 
 /**
  * System path of the run-files
  * These are empty files whose presence and modified time are the attributes we need
  */
-define('GRIOTTE_RUN', getenv('GRIOTTE_RUN') ?: realpath(GRIOTTE_FOLDER.'/run'));
+define('GRIOTTE_RUN_PATH', getenv('GRIOTTE_RUN_PATH') ?: realpath(GRIOTTE_ROOT_PATH.'/run'));
 
 /**
  * Delay in seconds before new readings are accepted for a node
@@ -44,4 +44,4 @@ define('GRIOTTE_LABEL', getenv('GRIOTTE_LABEL') ?: 'Griotte');
 define('GRIOTTE_STRUCT_ALLOWLIST', ['bme680']);
 
 
-define('GRIOTTE_DAILY_DB_TPL', '%s/daily/%d/%s/%s.sq3');
+define('GRIOTTE_DAILY_DB_PATH_TPL', '%s/daily/%d/%s/%s.sq3');

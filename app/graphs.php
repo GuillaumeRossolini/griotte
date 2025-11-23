@@ -47,7 +47,7 @@ unset($date_filter, $match);
 </script>
 
 <?php
-$db_filename = sprintf('%s/daily/%d/%s/%s.sq3', GRIOTTE_DB, $start_local->format('Y'), $start_local->format('m-F'), $start_local->format('Y-m-d'));
+$db_filename = sprintf('%s/daily/%d/%s/%s.sq3', GRIOTTE_DB_PATH, $start_local->format('Y'), $start_local->format('m-F'), $start_local->format('Y-m-d'));
 if(!file_exists($db_filename)) {
   syslog(LOG_ERR, sprintf('DB file does not exist: %s', $db_filename));
   echo html('DB file does not exist: %s', basename($db_filename));
@@ -72,7 +72,7 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 // attic OLD: 3764971370
 
-$config_filename = GRIOTTE_FOLDER.'/app/config.ini';
+$config_filename = GRIOTTE_ROOT_PATH.'/app/config.ini';
 $config = parse_ini_file($config_filename, true);
 
 $when_nodes = [];

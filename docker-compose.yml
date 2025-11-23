@@ -17,9 +17,9 @@ services:
       - '/home/pi/griotte/volumes/db:/var/www/db'
     environment:
       GRIOTTE_LABEL: Griotte
-      GRIOTTE_FOLDER: /var/www
-      GRIOTTE_DB: /var/www/db
-      GRIOTTE_RUN: /var/www/run
+      GRIOTTE_ROOT_PATH: /var/www
+      GRIOTTE_DB_PATH: /var/www/db
+      GRIOTTE_RUN_PATH: /var/www/run
       GRIOTTE_BUFFER_DELAY: 300
       GRIOTTE_NODE_DELAY: 60
 
@@ -34,5 +34,5 @@ services:
       - '/home/pi/griotte/volumes/db:/var/www/db:ro,volume-nocopy'
     environment:
       GRIOTTE_LABEL: Griotte
-      GRIOTTE_FOLDER: /var/www
-      GRIOTTE_DB: /var/www/db
+      GRIOTTE_ROOT_PATH: /var/www
+      GRIOTTE_DB_PATH: /var/www/db
