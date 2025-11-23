@@ -11,31 +11,9 @@ goto selftest;
 
 
 /**
- * This section attempts to identify global permission errors
+ * This section guards agains permission and payload structure errors
  */
 selftest:
-
-foreach(['GRIOTTE_RUN', 'GRIOTTE_DB'] as $_constant)
-if(!file_exists(constant($_constant))) {
-  trace(LOG_ERR, 'Folder %s not found: %s', $_constant, constant($_constant));
-  http(500, 'ko');
-  exit;
-}
-
-if(!is_writable(constant($_constant))) {
-  trace(LOG_ERR, 'Folder %s not writable: %s', $_constant, constant($_constant));
-  http(500, 'ko');
-  exit;
-}
-
-goto receive;
-
-
-
-/**
- * This section validates the input payload
- */
-receive:
 
 if(empty($_POST['struct'])) {
   trace(LOG_ERR, 'Missing "struct" field in the request body: %s', json_encode(array_keys($_POST)) ?: 'n/a');
@@ -70,18 +48,6 @@ if(false === $payload) {
   exit;
 }
 
-$gateway_uptime = null;
-if(!empty($_POST['uptime'])) {
-  $gateway_uptime = (int) $_POST['uptime'];
-}
-
-$gateway_signal = null;
-if(!empty($_POST['signal'])) {
-  $gateway_signal = (int) $_POST['signal'];
-}
-
-$agent_name = null;
-$griotte_nb = null;
 if(empty($_SERVER['HTTP_USER_AGENT'])) {
   trace(LOG_ERR, 'Missing the User-Agent header: %s', json_encode($_SERVER));
   http(400, 'ko');
@@ -95,9 +61,41 @@ if(!preg_match($regexp, $_SERVER['HTTP_USER_AGENT'], $griotte)) {
   exit;
 }
 
-// trace(LOG_DEBUG, 'Response sent after %0.3fms', microtime(true)-GRIOTTE_STARTTIME);
+foreach(['GRIOTTE_RUN', 'GRIOTTE_DB'] as $_constant) {
+  if(!file_exists(constant($_constant))) {
+    trace(LOG_ERR, 'Folder %s not found: %s', $_constant, constant($_constant));
+    http(500, 'ko');
+    exit;
+  }
+
+  if(!is_writable(constant($_constant))) {
+    trace(LOG_ERR, 'Folder %s not writable: %s', $_constant, constant($_constant));
+    http(500, 'ko');
+    exit;
+  }
+}
+
+goto receive;
 
 
+
+/**
+ * This section decodes the payload
+ */
+receive:
+
+$gateway_uptime = null;
+if(!empty($_POST['uptime'])) {
+  $gateway_uptime = (int) $_POST['uptime'];
+}
+
+$gateway_signal = null;
+if(!empty($_POST['signal'])) {
+  $gateway_signal = (int) $_POST['signal'];
+}
+
+$agent_name = null;
+$griotte_nb = null;
 list($agent_name, $griotte_nb) = explode('/', $_SERVER['HTTP_USER_AGENT']);
 
 $msg = sprintf(
@@ -110,21 +108,27 @@ $msg = sprintf(
 
 trace(LOG_INFO, 'Received %s payload: %s', $payload_struct, $msg);
 
-$types_allowlist = ['bme680'];
-if(!in_array($payload_struct, $types_allowlist, true)) {
-  trace(LOG_ERR, 'Data "%s" is not currently handled', $payload_struct);
-  http(400, 'ko');
-  exit;
+
+switch($payload_struct) {
+  case 'bme680';
+    goto bme680;
+    break;
+
+  default: // shoudn't happen: already handled in the self-test
+    trace(LOG_ERR, 'Payload type "%s" is not handled yet', $payload_struct);
+    http(400, 'ko');
+    exit;
+
 }
 
-goto parse;
+
 
 
 
 /**
- * This section parses the payload into fields
+ * This section parses the bme680 payload into fields
  */
-parse:
+bme680:
 
 $nb_fields = 12; // hardcoded from the regexp below
 
@@ -160,7 +164,7 @@ if(!empty($readings[8])) {
 $readings = array_map('floatval', $readings);
 $griotte_nb = floatval($griotte_nb);
 
-http(200, 'ok'); // presume OK until told otherwise
+http(200); // presume OK until told otherwise
 
 
 
@@ -332,5 +336,6 @@ goto finish;
  * End of the script
  */
 finish:
+// trace(LOG_DEBUG, 'Response sent after %0.3fms', microtime(true)-GRIOTTE_STARTTIME);
 http(201, 'ok');
 exit;

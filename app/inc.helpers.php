@@ -5,9 +5,11 @@ function html(string $output_tpl) {
   return htmlspecialchars($output_html, ENT_QUOTES);
 }
 
-function http($http_status, $http_body) {
+function http($http_status, $http_body=null) {
   http_response_code($http_status);
-  echo $http_body;
+  if($http_body) {
+    echo $http_body;
+  }
 }
 
 function trace($priority, $errmsg_tpl) {

@@ -2,7 +2,7 @@
 #include "painlessMesh.h"
 
 #define HAS_GRIOTTE_BUILD_ID
-const char GRIOTTE_BUILD_ID[] = "This is build 2025-09-22 13:15";
+const char GRIOTTE_BUILD_ID[] = "This is build 2025-11-22_16-54";
 
 /*
 # iaqSensor.staticIaq
@@ -411,7 +411,7 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
   Serial.printf("\t %uo payload in %ums (%d/%d dBm): status %d", strlen(payloadBuffer), timeSpent, signalStrength, WiFi.RSSI(), statusCode);
   Serial.println();
 
-  if(200 == statusCode) {
+  if(200 == statusCode || 201 == statusCode) {
     // Serial.printf("\tSent %uo in %ums via %s (%d dBm): HTTP %d", strlen(payloadBuffer), timeSpent, wanIP.toString().c_str(), statusCode);
     // Serial.println();
   }
@@ -437,7 +437,7 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
   // Serial.printf("Free HEAP after meshCallback_OnReceived: %u", ESP.getFreeHeap());
   // Serial.println();
   digitalWrite(LED, HIGH);
-  return 200 == statusCode;
+  return 200 == statusCode || 201 == statusCode;
 }
 
 byte scanWifi(int desiredChannel) {
