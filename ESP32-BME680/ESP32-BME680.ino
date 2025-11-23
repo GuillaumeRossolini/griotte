@@ -138,13 +138,14 @@ void setup(void)
   Serial.println("This is ESP32");
   // mesh.setDebugMsgTypes(ERROR | MESH_STATUS | CONNECTION | SYNC | MSG_TYPES | REMOTE | DEBUG);
   // mesh.setDebugMsgTypes(ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG);
-  // mesh.setDebugMsgTypes(ERROR | STARTUP | CONNECTION | REMOTE | DEBUG);
+  mesh.setDebugMsgTypes(ERROR | STARTUP | CONNECTION | REMOTE | DEBUG);
 #endif
 
 #ifdef ESP8266
   Serial.println("This is ESP8266");
   // mesh.setDebugMsgTypes(ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG);
   // mesh.setDebugMsgTypes(ERROR | STARTUP | REMOTE | DEBUG);
+  mesh.setDebugMsgTypes(ERROR | STARTUP | CONNECTION | REMOTE | DEBUG);
   setupIaqSensor();
 #endif
 
@@ -300,9 +301,13 @@ void meshCallback_OnChangedConnections() {
 }
 
 void meshCallback_OnNodeTimeAdjusted(int32_t offset) {
+  Serial.printf("OnNodeTimeAdjusted at %u", offset);
+  Serial.println();
 }
 
 void meshCallback_OnNodeDelayReceived(uint32_t nodeId, int32_t delay) {
+  Serial.printf("OnNodeDelayReceived from #%u at %u", nodeId, delay);
+  Serial.println();
 }
 
 
