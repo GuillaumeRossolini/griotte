@@ -1,4 +1,4 @@
-FROM php:8.4.14-cli-alpine3.22@sha256:69ee19e1bee51ad7d5b5e44ceaa317cc7904b22211de4fb0c85284ffec123341
+FROM php:8-cli-alpine@sha256:dccc3abcf3d37a6bb081477a66ed4344716784a6ef5107625ae6ba9ec52df778
 
 RUN apk update \
     && apk add sqlite

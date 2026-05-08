@@ -22,13 +22,13 @@ define('GRIOTTE_DB_PATH', getenv('GRIOTTE_DB_PATH') ?: realpath(GRIOTTE_ROOT_PAT
 define('GRIOTTE_RUN_PATH', getenv('GRIOTTE_RUN_PATH') ?: realpath(GRIOTTE_ROOT_PATH.'/run'));
 
 /**
- * Delay in seconds before new readings are accepted for a node
+ * Delay (in seconds) before new readings are accepted for a node
  * This delay is computed from a node's run-file modified timestamp
  */
 define('GRIOTTE_NODE_DELAY', (int) (getenv('GRIOTTE_NODE_DELAY') ?: 1*60));
 
 /**
- * Delay in seconds before new readings are committed to a database
+ * Delay (in seconds) before new readings are committed to a database
  * This delay is computed from the global buffer-file modified timestamp
  */
 define('GRIOTTE_BUFFER_DELAY', (int) (getenv('GRIOTTE_BUFFER_DELAY') ?: 5*60));

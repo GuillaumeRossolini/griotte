@@ -1,12 +1,12 @@
 version: "3"
 
-# docker build -t griotte:2025-11-23_17-47 .
+# docker build -t griotte:2026-05-08_15-40 .
 # docker stack deploy -c docker-compose.yml --prune griotte
 
 services:
 
   api:
-    image: "griotte:2025-11-23_17-47"
+    image: "griotte:2026-05-08_15-40"
     tmpfs:
       - /tmp
       - /var/www/run
@@ -24,7 +24,7 @@ services:
       GRIOTTE_NODE_DELAY: 60
 
   graphs:
-    image: "griotte:2025-11-23_17-47"
+    image: "griotte:2026-05-08_15-40"
     tmpfs:
       - /tmp
     ports:

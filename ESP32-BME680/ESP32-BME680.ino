@@ -2,7 +2,7 @@
 #include "painlessMesh.h"
 
 #define HAS_GRIOTTE_BUILD_ID
-const char GRIOTTE_BUILD_ID[] = "This is build 2025-11-22_16-54";
+const char GRIOTTE_BUILD_ID[] = "This is build 2026-04-25_11-04";
 
 /*
 # iaqSensor.staticIaq

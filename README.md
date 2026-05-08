@@ -127,29 +127,27 @@ In this project is a file called "ESP32-BME680.ino": that's my program, also cal
 In the Arduino IDE Essential boards manager URL field (look it up in Preferences), this is what I have:
 
 ```
-http://arduino.esp8266.com/stable/package_esp8266com_index.json,https://github.com/espressif/arduino-esp32/releases/download/3.0.4/package_esp32_dev_index.json,https://github.com/espressif/arduino-esp32/releases/download/3.0.4/package_esp32_index.json
+http://arduino.esp8266.com/stable/package_esp8266com_index.json,https://github.com/espressif/arduino-esp32/releases/download/3.3.8/package_esp32_dev_index.json,https://github.com/espressif/arduino-esp32/releases/download/3.3.8/package_esp32_index.json
 ```
 
 Which translates to the following URLs, separated by a comma:
 - http://arduino.esp8266.com/stable/package_esp8266com_index.json
-- https://github.com/espressif/arduino-esp32/releases/download/3.0.4/package_esp32_dev_index.json
-- https://github.com/espressif/arduino-esp32/releases/download/3.0.4/package_esp32_index.json
+- https://github.com/espressif/arduino-esp32/releases/download/3.3.8/package_esp32_dev_index.json
+- https://github.com/espressif/arduino-esp32/releases/download/3.3.8/package_esp32_index.json
 
 The Board Managers are what allow you to choose your ESP8266 and ESP32 devices in Arduino IDE so that you can interact with them: flash, debug _etc._ Flashing means writing the program to the device, and debugging (to me) mostly means having logs show up on the serial console.
 
 The following are my installed Board Manager versions:
-- ESP32 v3.0.7 by Espressif systems
+- ESP32 v3.3.8 by Espressif systems
 - ESP8266 v3.1.2 by ESP8266 community
-
-The ESP32 board manager had to be held back even though there is a newer version available: I got crashed on reboot after v3.0.
 
 My best guess at the actual libraries I was required to install were (some are installed automatically by Arduino IDE from the Includes, others aren't):
 
 |Name|Version|Authors|URL|
 |-|-|-|-|
-|PainlessMesh|v1.5.0|Coopdis, Scotty Franzyshen, Edwin van Leeuwen, Germán Martín, Maximillian Schwartz, Doanh Doanh|https://gitlab.com/painlessMesh/painlessMesh|
+|Painless Mesh|v1.5.7|Coopdis, Scotty Franzyshen, Edwin van Leeuwen, Germán Martín, Maximillian Schwartz, Doanh Doanh|https://gitlab.com/painlessMesh/painlessMesh|
 |ArduinoJson|v6.21.5|Benoit Blanchon|https://arduinojson.org/|
-|AsyncTCP|v1.1.4|dvarrel|https://github.com/dvarrel/AsyncTCP|
+|AsyncTCP|v3.4.10|ESP32Async|https://github.com/ESP32Async/AsyncTCP|
 |ESPAsyncTCP|v1.2.4|dvarrel|https://github.com/dvarrel/ESPAsyncTCP|
 
 (^ these last two are one for ESP32, the other for ESP8266)
@@ -161,23 +159,23 @@ For what it's worth, and in case I was mistaken with my short list, here are all
 |Name|Version|Authors|URL|
 |-|-|-|-|
 |ArduinoHttpClient|v0.6.1|Arduino|https://github.com/arduino-libraries/ArduinoHttpClient|
-|Adafruit_BME680|v2.0.4|Adafruit|https://github.com/adafruit/Adafruit_BME680|
-|Adafruit_BusIO|v1.16.1|Adafruit|https://github.com/adafruit/Adafruit_BusIO|
-|Adafruit-GFX-Library|v1.11.10|Adafruit|https://github.com/adafruit/Adafruit-GFX-Library|
-|Adafruit SSD1306|v2.5.11|Adafruit|https://github.com/adafruit/Adafruit_SSD1306|
-|Adafruit Unified Sensor|v1.1.14|Adafruit|https://github.com/adafruit/Adafruit_Sensor|
+|Adafruit_BME680|v2.0.6|Adafruit|https://github.com/adafruit/Adafruit_BME680|
+|Adafruit_BusIO|v1.17.4|Adafruit|https://github.com/adafruit/Adafruit_BusIO|
+|Adafruit-GFX-Library|v1.12.6|Adafruit|https://github.com/adafruit/Adafruit-GFX-Library|
+|Adafruit SSD1306|v2.5.16|Adafruit|https://github.com/adafruit/Adafruit_SSD1306|
+|Adafruit Unified Sensor|v1.1.15|Adafruit|https://github.com/adafruit/Adafruit_Sensor|
 |ArduinoJson|v6.21.5|Benoit Blanchon|https://arduinojson.org|
-|AsyncTCP|v1.1.4|dvarrel|https://github.com/dvarrel/AsyncTCP|
-|BME68x Sensor library|v1.2.44408|Bosch Sensortech|[1]|
+|AsyncTCP|v3.4.10|ESP32Async|https://github.com/ESP32Async/AsyncTCP|
+|BME68x Sensor library|v1.3.40408|Bosch Sensortech|[1]|
 |BSEC Softare Library|v1.6.1480|Bosch Sensortech|https://www.bosch-sensortec.com/software-tools/software/bsec/|
-|ESP ASync WebServer|v3.0.6|ESP32Async|https://github.com/ESP32Async/ESPAsyncWebServer|
+|ESP ASync WebServer|v3.11.0|ESP32Async|https://github.com/ESP32Async/ESPAsyncWebServer|
 |ESPAsyncTCP|v1.2.4|dvarrel|https://github.com/dvarrel/ESPAsyncTCP|
 |HttpClient|v2.2.0|Adrian McEwen |https://github.com/amcewen/HttpClient|
-|PainlessMesh|v1.5.0|Coopdis, Scotty Franzyshen, Edwin van Leeuwen, Germán Martín, Maximillian Schwartz, Doanh Doanh|https://gitlab.com/painlessMesh/painlessMesh|
+|Painless Mesh|v1.5.7|Coopdis, Scotty Franzyshen, Edwin van Leeuwen, Germán Martín, Maximillian Schwartz, Doanh Doanh|https://gitlab.com/painlessMesh/painlessMesh|
 |PubSubClient|v2.8|Nick O'Leary|https://pubsubclient.knolleary.net|
 |RTCLib|v2.1.4|Adafruit|https://github.com/adafruit/RTClib|
-|SdFat|v2.2.3|Bill Greirman|https://github.com/adafruit/RTClib|
-|TaskScheduler|v3.8.5|Anatoli Arkhipenko|https://github.com/arkhipenko/TaskScheduler|
+|SdFat|v2.3.0|Bill Greirman|https://github.com/adafruit/RTClib|
+|TaskScheduler|v4.0.8|Anatoli Arkhipenko|https://github.com/arkhipenko/TaskScheduler|
 |base64|v1.3.0|Densaugeo|https://github.com/Densaugeo/base64_arduino|
 |bsec2|v1.7.2502|Bosch Sensortech|[1]|
 
@@ -190,7 +188,7 @@ I am by no means an expert in this, but here is my process.
 
 Open up Arduino IDE and plug your ESP device in whichever USB port is available. This can't be through a USB hub, but directly in your PC. Or maybe it can but I don't know the specifics.
 
-This is tough because the driver names in Arduino IDE tend to change over time. Best I can tell, these seem to be working fine:
+This is tough because the driver names in Arduino IDE tend to change over time. Best I can tell, these seem to be working fine for the boards that I have:
 |hardware|Arduino IDE driver|
 |-|-|
 |ESP8266|LOLIN(WEMOS) D1 mini (clone)|
@@ -198,7 +196,7 @@ This is tough because the driver names in Arduino IDE tend to change over time. 
 
 You can select this in Arduino IDE a few different ways. The most straightforward way is using the drop-down list near the menus at the top of the program: "Select other board and port..."
 
-Make sure the Serial Monitor is open (enable it in the Tools menu) and that its baud rate matches the one in my program (that's 115200 baud).
+To check that your board is working, make sure the Serial Monitor is open (enable it in the Tools menu) and that its baud rate matches the one in my program (that's 115200 baud). The Serial Monitor will need to be closed for the actual flashing process.
 
 If everything is working correctly, you should see something like this for ESP8266:
 ![Screenshot of Arduino IDE with a new ESP8266 micro controller plugged in](./doc/img/src/arduino-ide_serial-console.png)
