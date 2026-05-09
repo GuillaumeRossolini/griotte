@@ -1,6 +1,8 @@
 version: "3"
 
 # docker build -t griotte:2026-05-08_15-40 .
+# docker build -t "$(yq -r .services.api.image docker-compose.yml)" .
+# docker build -t "$(yq -r .services.graphs.image docker-compose.yml)" .
 # docker stack deploy -c docker-compose.yml --prune griotte
 
 services:

@@ -1,9 +1,12 @@
 .git
 .gitignore
-Dockerfile
-doc
-linux
-ESP32-BME680
 app/config.*.ini
 db
+debug/*.ino
+doc
+Dockerfile
+ESP32-BME680
+linux/bash
+linux/systemd
+linux/sync-readings.sh
 *.sq3

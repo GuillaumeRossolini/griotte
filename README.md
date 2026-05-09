@@ -285,7 +285,7 @@ chmod +x griotte/app/csv2sqlite.sh
 sudo chown -R www-data:pi griotte
 sudo ln -s griotte/app/csv2sqlite.sh /usr/local/bin/csv2sqlite
 cd griotte/www
-sudo -u www-data php -S 0.0.0.0:8080
+sudo -u www-data php -S 0.0.0.0:8081
 ```
 
 The script will listen to the ESP32, which will be pushing measurements constantly (in my case that's 10 nodes every 3 seconds, spread unevenly).
@@ -345,7 +345,11 @@ sudo systemctl restart griotte.service
 ```
 
 Send the project over ssh to the pi:
+
 ```bash
+# either
+git clone https://github.com/GuillaumeRossolini/griotte.git
+# or
 time rsync -av -e ssh \
   --exclude='.git' \
   --exclude='.gitignore' \
@@ -353,7 +357,7 @@ time rsync -av -e ssh \
   --exclude='ESP32-BME680' \
   --exclude='*.griot.*' \
   --exclude='*.mariot.*' \
-  griotte griotte:/home/pi/
+  griotte pi.griot.local:/home/pi/
 ```
 
 
@@ -365,32 +369,20 @@ CALL wsl.exe -e /mnt/c/Users/IoT/Documents/sync-readings.sh
 PAUSE
 ```
 
-This is the `sync-readings.sh` script:
-```bash
-#!/usr/bin/env bash
-
-time scp \
-	"pi.griot.local:/home/pi/griotte/volumes/db/daily/*/*/*.sq3" \
-	"/mnt/c/Users/IoT/Documents/bme680-readings/daily/"
-
-time scp \
-	"pi.griot.local:/home/pi/griotte/volumes/db/readings.sq3" \
-	"/mnt/c/Users/IoT/Documents/bme680-readings/big_$(date +%Y-%m-%dT%H-%M-%S).sq3"
-
-find \
-	/mnt/c/Users/IoT/Documents/bme680-readings \
-	-type f \
-	-name "*.sq3" \
-	-printf "%CY-%Cm-%Cd %CT\t%u\t%M\t%kK\t%h\t%f\n"
-```
-
 
 ## Known issues & Wishlist
 
+## Documentation
 * improve the Docker docs
 * write the Getting Started docs
 * refactor the docs
+
+## Microprogram
 * when a sensor starts returning incorrect readings, its node should recalibrate or self reset
-* when a node fails to reconnect to the mesh, it should self reset
+* when a node can't reach the root node for a while, it should self reset
+* batch the ESP32>RPI0 HTTP requests to better scale the number of nodes in the mesh w/r/t HTTP round-trip times
+
+## Webserver
 * changes to the mesh topology are sent over HTTP (keeps the mesh alive) but currently not logged to the database
-* batch the ESP32>RPI0 HTTP requests to better scale the number of nodes in the mesh
+* optimize writes on the Raspberry Pi Zero to reduce latency and storage wear
+* improve default shell handling: aliases and other maintenance utilities when ssh'ing into the rpi etc.

@@ -1,0 +1,5 @@
+# ~/.ashrc: interactive shell configuration for BusyBox Ash
+
+if [ -f ~/.ash_aliases ]; then
+  . ~/.ash_aliases
+fi

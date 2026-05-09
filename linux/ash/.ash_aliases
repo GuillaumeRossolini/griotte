@@ -1,0 +1,4 @@
+#!/usr/bin/env ash
+alias watchbuffer="time watch \"cat /var/www/run/buffer.csv | expand\""
+alias dbstats="time /usr/local/bin/dbstats"
+alias watchdb="time watch /usr/local/bin/dbstats"
