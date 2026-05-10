@@ -380,8 +380,10 @@ PAUSE
 ## Microprogram
 * when a sensor starts returning incorrect readings, (maybe?) its node should recalibrate or self reset
 * batch the ESP32>RPI0 HTTP requests to better scale the number of nodes in the mesh w/r/t HTTP round-trip times
+* implement gradual backoff for the HTTP messages to the RPI0 in case the web server goes down, so that the mesh doesn't destabilize as a result of the increased delays and the ESP32 being busy
 * upgrade ArduinoJson lib
 * upgrade BSEC lib
+* Home Assistant compatibility
 
 ## Webserver
 * changes to the mesh topology are sent over HTTP (keeps the mesh alive) but currently not logged to the database
