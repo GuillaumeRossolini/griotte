@@ -379,7 +379,6 @@ PAUSE
 
 ## Microprogram
 * when a sensor starts returning incorrect readings, (maybe?) its node should recalibrate or self reset
-* when a node can't reach the root node for a while, it should rejoin the mesh or self reset
 * batch the ESP32>RPI0 HTTP requests to better scale the number of nodes in the mesh w/r/t HTTP round-trip times
 * upgrade ArduinoJson lib
 * upgrade BSEC lib

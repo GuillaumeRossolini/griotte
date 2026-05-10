@@ -2,7 +2,7 @@
 #include "painlessMesh.h"
 
 #define HAS_GRIOTTE_BUILD_ID
-const char GRIOTTE_BUILD_ID[] = "This is build 2026-04-25_11-04";
+const char GRIOTTE_BUILD_ID[] = "This is build 2026-05-10_08-46";
 
 /*
 # iaqSensor.staticIaq
@@ -55,9 +55,11 @@ void hasRootNode(uint32_t, byte);
 
 
 #ifdef ESP8266
+static const unsigned int MESH_STABILITY_THRESHOLD = 135000;
 const unsigned int LED = LED_BUILTIN;
 unsigned long lastReadData = 0;
 static unsigned int sensorFailCount = 0;
+unsigned long lastMeshStabilityTimer = 0;
 static const unsigned int SENSOR_FAIL_THRESHOLD = 3;
 byte iaqAddress = 0; // address 0 is n/a
 Bsec iaqSensor;
@@ -76,6 +78,7 @@ void setupIaqSensor();
 void checkIaqSensorStatus();
 void formatOutputMsg(unsigned long);
 void checkSensorData(unsigned long);
+void checkMeshStability(unsigned long);
 #endif
 
 #ifdef ESP32
@@ -164,6 +167,7 @@ void loop(void)
 
 #ifdef ESP8266
   checkSensorData(timeTrigger);
+  checkMeshStability(timeTrigger);
 #endif
 
   reminders(timeTrigger);
@@ -209,6 +213,24 @@ void hasRootNode(uint32_t nodeId, byte nodeIsAvailable) {
     isRootReachable = TRUE;
   }
 }
+
+
+#ifdef ESP8266
+void checkMeshStability(unsigned long startedAt) {
+  if(MESH_STABILITY_THRESHOLD > startedAt - lastMeshStabilityTimer) {
+    return; // too early
+  }
+
+  lastMeshStabilityTimer = timeTrigger;
+  if(FALSE == isRootReachable) {
+    Serial.printf("Root not is not reachable");
+    Serial.println();
+    ESP.restart();
+  }
+
+  return;
+}
+#endif
 
 
 void reminders(unsigned long startedAt) {
@@ -408,14 +430,18 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
     http.read();  // force socket cleanup & discard response
   }
 
+  http.stop();
+
   Serial.printf("\t %uo payload in %ums (%d/%d dBm): status %d", strlen(payloadBuffer), timeSpent, signalStrength, WiFi.RSSI(), statusCode);
   Serial.println();
 
-  if(200 == statusCode || 201 == statusCode) {
+  const byte httpSuccess = (200 >= statusCode && 299 <= statusCode);
+  const byte httpFailure = (statusCode <= 0);
+  if(httpSuccess) {
     // Serial.printf("\tSent %uo in %ums via %s (%d dBm): HTTP %d", strlen(payloadBuffer), timeSpent, wanIP.toString().c_str(), statusCode);
     // Serial.println();
   }
-  else if (statusCode <= 0) {
+  else if (httpFailure) {
     // Serial.printf(
     //   "Failed to forward %uo from #%u in %ums: error code %d",
     //   strlen(payloadBuffer), from, timeSpent, statusCode
@@ -432,12 +458,10 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
     // Serial.println();
   }
 
-  http.stop();
-
   // Serial.printf("Free HEAP after meshCallback_OnReceived: %u", ESP.getFreeHeap());
   // Serial.println();
   digitalWrite(LED, HIGH);
-  return 200 == statusCode || 201 == statusCode;
+  return httpSuccess;
 }
 
 byte scanWifi(int desiredChannel) {
