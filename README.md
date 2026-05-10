@@ -388,3 +388,10 @@ PAUSE
 * changes to the mesh topology are sent over HTTP (keeps the mesh alive) but currently not logged to the database
 * optimize writes on the Raspberry Pi Zero to reduce latency and storage wear
 * improve default shell handling: aliases and other maintenance utilities when ssh'ing into the rpi etc.
+
+## Hardware
+* battery & solar recharge
+
+## What I don't know what to do about
+* cramming a bunch of these devices in a room will result in an unstable mesh, possibly due to interference
+* in fact, using these devices in a wifi-crowded space won't work
