@@ -392,6 +392,7 @@ PAUSE
 
 ## Hardware
 * battery & solar recharge
+* e-ink/e-paper screen
 
 ## What I don't know what to do about
 * cramming a bunch of these devices in a room will result in an unstable mesh, possibly due to interference
