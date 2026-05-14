@@ -242,10 +242,11 @@ void reminders(unsigned long startedAt) {
   lastReminderTimer = timeTrigger;
 
   Serial.printf(
-    "I am node #%u at %us over MESH/%s@%d (%u subs, stability %d)"
+    "I am node #%u at %us over MESH/%s:%d@%d (%u subs, stability %d)"
     , currentNode
     , (int) startedAt/1000
     , mesh.getAPIP().toString().c_str()
+    , MESH_PORT
     , MESH_CHANNEL
     , mesh.subs.size()
     , mesh.stability
@@ -342,19 +343,11 @@ void setupNetwork() {
   mesh.onNodeTimeAdjusted(&meshCallback_OnNodeTimeAdjusted);
   mesh.onNodeDelayReceived(&meshCallback_OnNodeDelayReceived);
 
-
   currentNode = mesh.getNodeId();
   Serial.printf("I am node #%u in the mesh", currentNode);
   Serial.println();
 
-#ifdef ESP8266
-  Serial.println("I am not the root node");
-  mesh.setContainsRoot(true);
-#endif
-
 #ifdef HAS_STATION_CREDS
-  Serial.println("I _am_ the root node");
-
   WiFi.onEvent(&wifiCallback_OnEvent);
 
   // debug WiFi issues
@@ -362,11 +355,19 @@ void setupNetwork() {
     scanWifi(-1);
   }
 
-  mesh.setRoot(true);
   mesh.stationManual(STATION_SSID, STATION_PASSWORD);
-  mesh.setHostname(MESH_ROOT_HOST);
-  mesh.sendBroadcast("Hello this is root speaking");
 #endif
+
+  if(MESH_ROOT_NODE != currentNode) {
+    Serial.println("I am not the root node");
+    mesh.setContainsRoot(true);
+  }
+  else {
+    Serial.println("I _am_ the root node");
+    mesh.setRoot(true);
+    mesh.setHostname(MESH_ROOT_HOST);
+    mesh.sendBroadcast("Hello this is root speaking");
+  }
 
 #ifdef ESP32
   mesh.sendBroadcast("Hi, ESP32 starting up");
@@ -384,14 +385,14 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
 
   Serial.printf("HTTP message %s at %us from #%u: \t%s", dataType, (int) receivedAt/1000, from, msg.c_str());
 
-  if(MESH_ROOT_NODE != currentNode) {
-    Serial.println("\tnot forwarded (not the root node)");
-    return FALSE;
-  }
-
   if(FALSE == hasWlanIP) {
     Serial.println("\tnot forwarded (no WAN IP)");
-    return FALSE;
+    return TRUE;
+  }
+
+  if(MESH_ROOT_NODE != currentNode) {
+    Serial.println("\tnot forwarded (not the root node)");
+    return TRUE;
   }
 
   digitalWrite(LED, LOW);
@@ -716,7 +717,7 @@ void checkSensorData(unsigned long startedAt) {
 
       formatOutputMsg(startedAt); // sets outBuffer
 
-      mesh.sendBroadcast(outBuffer);
+      mesh.sendBroadcast(outBuffer); // this is important: the entire mesh receives the sensor readings
       Serial.println(outBuffer);
     }
     else if(startedAt - lastReadData < 3*1100) {
