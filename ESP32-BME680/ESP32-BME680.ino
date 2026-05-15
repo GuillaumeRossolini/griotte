@@ -119,6 +119,7 @@ unsigned long timeTrigger;
 
 void setup(void)
 {
+  btStop(); // disable BlueTooth
   Serial.begin(115200);
   while (!Serial);
 
