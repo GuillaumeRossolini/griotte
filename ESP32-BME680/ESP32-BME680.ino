@@ -100,7 +100,7 @@ byte sendHttp(unsigned long, uint32_t, const char*, String &);
 IPAddress wanIP(0,0,0,0);
 static const unsigned int HTTP_RESPONSE_TIMEOUT = 350;
 static const unsigned int HTTP_WAIT_FOR_DATA_DELAY = 200;
-static const unsigned int HTTP_NB_RETRIES = 3;
+static const unsigned int HTTP_NB_RETRIES = 2;
 #endif
 
 
