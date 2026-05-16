@@ -83,6 +83,8 @@ void checkMeshStability(unsigned long);
 
 #ifdef ESP32
 const unsigned int LED = 8;
+const char DATASTRUCT_TYPOLOGY[] = "typology";
+const char DATASTRUCT_BME680[] = "bme680";
 #endif
 
 #ifdef HAS_STATION_CREDS
@@ -96,8 +98,6 @@ byte hasWlanIP = FALSE;
 WiFiClient wifi;
 byte sendHttp(unsigned long, uint32_t, const char*, String &);
 IPAddress wanIP(0,0,0,0);
-const char DATASTRUCT_TYPOLOGY[] = "typology";
-const char DATASTRUCT_BME680[] = "bme680";
 static const unsigned int HTTP_RESPONSE_TIMEOUT = 350;
 static const unsigned int HTTP_WAIT_FOR_DATA_DELAY = 200;
 static const unsigned int HTTP_NB_RETRIES = 3;
@@ -304,6 +304,9 @@ void meshCallback_OnReceived(uint32_t from, String &msg) {
       break;
     }
   }
+#else ESP32
+  Serial.printf("HTTP message %s at %us from #%u: \t%s", DATASTRUCT_BME680, (int) receivedAt/1000, from, msg.c_str());
+  Serial.println();
 #endif
 }
 
