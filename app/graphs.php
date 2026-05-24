@@ -70,7 +70,11 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 // 900-919: cat5 hurricane
 // 850-899: tornado
 
-// attic OLD: 3764971370
+
+/**
+ * Start the age with a high-level graph of all the nodes
+ * for the chosen date and their average readings
+ */
 
 $config_filename = GRIOTTE_ROOT_PATH.'/app/config.ini';
 $config = parse_ini_file($config_filename, true);
@@ -104,7 +108,7 @@ SELECT node
   , ROUND(AVG(hpa/100), 2) AS avg_hpa
   , ROUND(AVG(hum), 2) AS avg_hum
   , ROUND(AVG(temp), 2) AS avg_temp
-  , CASE WHEN ROUND(AVG(iaq/5), 2) > 100 THEN 100 ELSE ROUND(AVG(iaq/5), 2) END AS avg_iaq
+  , (100 - CASE WHEN ROUND(AVG(iaq/5), 2) > 100 THEN 100 ELSE ROUND(AVG(iaq/5), 2) END) AS avg_iaq
   , ROUND(AVG(eco2), 2) AS avg_eco2
   , ROUND(AVG(voc*100), 2) AS avg_voc
   , ROUND(AVG(accuracy/3*100), 2) AS avg_accuracy
@@ -251,12 +255,17 @@ $zindex = 0;
 
 <?php
 
+/**
+ * Now we present each node individually
+ * with detailed readings for the chosen date
+ */
+
 $sql = <<<SQL
 SELECT created_at
   , CASE WHEN hpa <= 0 THEN 0 ELSE ROUND(hpa/100, 2)-920 END AS hpa
   , ROUND(hum, 2) AS hum
   , ROUND(temp, 2) AS temp
-  , CASE WHEN ROUND(iaq/5, 2) > 100 THEN 100 ELSE ROUND(iaq/5, 2) END AS iaq
+  , (100 - CASE WHEN ROUND(iaq/5, 2) > 100 THEN 100 ELSE ROUND(iaq/5, 2) END) AS iaq
   , ROUND(eco2, 2) AS eco2
   , ROUND(voc*100, 2) AS voc
   , ROUND(accuracy/3*100, 2) AS accuracy

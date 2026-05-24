@@ -389,6 +389,7 @@ PAUSE
 * changes to the mesh topology are sent over HTTP (keeps the mesh alive) but currently not logged to the database
 * optimize writes on the Raspberry Pi Zero to reduce latency and storage wear
 * improve default shell handling: aliases and other maintenance utilities when ssh'ing into the rpi etc.
+* find a better solution for the database overlap currently required (because of timezones and small DB files)
 
 ## Hardware
 * battery & solar recharge
