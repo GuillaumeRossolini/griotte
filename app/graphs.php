@@ -56,6 +56,8 @@ unset($date_filter, $match);
 
   tbody tr td {
     border: 1px dotted black;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   td[role="nb"] {
