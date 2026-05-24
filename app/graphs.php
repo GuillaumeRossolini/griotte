@@ -253,6 +253,143 @@ $zindex = 0;
   });
 </script>
 
+
+<?php
+
+/**
+ * This is a technical presentation of how healthy the mesh was
+ * for the chosen date
+ */
+
+$sql_tpl = <<<SQL
+WITH _readings AS (
+  SELECT node, created_at, heap, uptime
+    , LAG (uptime) OVER (PARTITION BY node ORDER BY created_at) AS lag
+  FROM sensor_reading
+  WHERE created_at BETWEEN ? AND ?
+)
+, _reboots AS (
+  SELECT node, created_at, lag
+  FROM _readings
+  WHERE uptime < lag
+)
+
+SELECT
+  node,
+  CASE node
+    %s
+    ELSE node
+  END AS node_lbl,
+  CASE node
+    %s
+    ELSE 3
+  END AS floor,
+  TIME(MIN(created_at)) AS earliest_reading,
+  TIME(MAX(created_at)) AS latest_reading,
+  MIN(heap)/1024 AS heap_ko,
+  MAX(uptime) /60/60 AS uptime_h,
+  COUNT(_reboots.created_at) AS nb_reboots,
+  COUNT(1) AS nb_readings
+FROM _readings
+LEFT JOIN _reboots USING (node, created_at)
+GROUP BY node
+ORDER BY floor, node_lbl
+SQL;
+
+
+$sql = sprintf($sql_tpl, implode(PHP_EOL, $when_nodes), implode(PHP_EOL, $when_floors));
+
+$stmt = $db->prepare($sql);
+$stmt->execute([
+  $start_utc->format('Y-m-d H:i:s'),
+  $end_utc->format('Y-m-d H:i:s'),
+]);
+
+$health = [];
+foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $res) {
+  $health[$res['node']] = $res;
+}
+
+?>
+
+<style type="text/css">
+  table {
+    border: 1px solid black;
+    margin-top: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 20px;
+  }
+
+  tfoot tr td {
+    font-style: italic;
+  }
+
+  tbody tr td {
+    border: 1px dotted black;
+  }
+
+  td[role="nb"] {
+    text-align: right;
+  }
+</style>
+
+<table>
+  <thead>
+    <tr>
+      <th>Node</th>
+      <th>Earliest Reading</th>
+      <th>Latest Reading</th>
+      <th>Heap size</th>
+      <th>Uptime</th>
+      <th>Reboots</th>
+      <th>Readings</th>
+    </tr>
+  </thead>
+
+  <tfoot>
+    <?php
+    $nb_nodes = count(array_column($health, 'node'));
+    $nb_reboots = array_sum(array_column($health, 'nb_reboots'));
+    $nb_readings = array_sum(array_column($health, 'nb_readings'));
+    ?>
+
+    <tr>
+      <td role="nb"><?=html('%d nodes', $nb_nodes)?></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td role="nb"><?=html('%d total', $nb_reboots)?></td>
+      <td role="nb"><?=html('%d total', $nb_readings)?></td>
+    </tr>
+  </tfoot>
+
+  <tbody>
+    <?php foreach($health as $node_idx => $res): ?>
+      <?php
+      $earliest = (new DateTimeImmutable($res['earliest_reading'], $tz_utc))
+        ->setTimezone($tz_local);
+      $latest = (new DateTimeImmutable($res['latest_reading'], $tz_utc))
+        ->setTimezone($tz_local);
+      ?>
+
+      <tr>
+        <td><?=html('%s@F%d', $res['node_lbl'], $res['floor']);?></td>
+        <td role="nb"><?=html($earliest->format('H:i:s'))?></td>
+        <td role="nb"><?=html($latest->format('H:i:s'))?></td>
+        <td role="nb"><?=html('%d Ko', $res['heap_ko'])?></td>
+        <td role="nb"><?=html('%d h', $res['uptime_h'])?></td>
+        <td role="nb"><?=html($res['nb_reboots'])?></td>
+        <td role="nb"><?=html($res['nb_readings'])?></td>
+      </tr>
+    <?php endforeach; ?>
+  </tbody>
+
+</table>
+
+
+
 <?php
 
 /**
