@@ -239,8 +239,7 @@ fclose($buffer_handle);
 $filemtime = filemtime($run_filenames['buffer']);
 
 if(false === $filemtime) {
-  if(!touch($run_filenames[GRIOTTE_PAYLOAD_STRUCT], $_SERVER['REQUEST_TIME'])) {
-    trace(LOG_ERR, 'Unable to create run %s file: %s', GRIOTTE_PAYLOAD_STRUCT, $run_filenames[GRIOTTE_PAYLOAD_STRUCT]);
+  if(!truncate($run_filenames[GRIOTTE_PAYLOAD_STRUCT], false, $_SERVER['REQUEST_TIME'])) {
     http(500, 'ko');
     exit;
   }
@@ -251,8 +250,7 @@ if($_SERVER['REQUEST_TIME'] >= ($filemtime + GRIOTTE_BUFFER_DELAY)) {
   goto commit;
 }
 
-if(!touch($run_filenames[GRIOTTE_PAYLOAD_STRUCT], $_SERVER['REQUEST_TIME'])) {
-  trace(LOG_ERR, 'Unable to create run %s file: %s', GRIOTTE_PAYLOAD_STRUCT, $run_filenames[GRIOTTE_PAYLOAD_STRUCT]);
+if(!truncate($run_filenames[GRIOTTE_PAYLOAD_STRUCT], false, $_SERVER['REQUEST_TIME'])) {
   http(500, 'ko');
   exit;
 }
@@ -267,10 +265,16 @@ finish(200);
 commit:
 
 $buffer_handle = fopen($buffer_filename, 'r');
+if(!$buffer_handle) {
+  trace(LOG_ERR, 'Unable to open file: %s', $buffer_filename);
+  http(500, 'ko');
+  exit;
+}
 if(!filesize($buffer_filename)) {
   trace(LOG_ERR, 'Buffer file is empty, nothing to commit: %s', $buffer_filename);
   finish(200);
 }
+fclose($buffer_handle);
 
 // let's save every reading in a daily database, as well as a giant all-time database
 // and also in the databases from the previous and the next day to avoid timezone issues
@@ -299,7 +303,7 @@ foreach($db_filenames as $_db_idx => $_db_filename) {
   }
 
   if($new_db) {
-    touch($_db_filename);
+    truncate($_db_filename, true);
     chmod($_db_filename, 0664);
   }
 
@@ -317,26 +321,19 @@ foreach($db_filenames as $_db_idx => $_db_filename) {
   trace(LOG_DEBUG, 'Import result to %s was: exit %d, output: %s', $_db_filename, $res, json_encode($output));
   if(0 !== $res) {
     trace(LOG_ERR, 'Unable to import data into %s: %s; cmd was: %s', $_db_filename, json_encode($output), $shellcmd);
-
     http(500, 'ko');
     exit;
   }
 }
 
-fclose($buffer_handle);
-if(!fopen($buffer_filename, 'w')) {
+
+if(!truncate($buffer_filename, true, $_SERVER['REQUEST_TIME'])) {
   trace(LOG_ERR, 'Unable to truncate buffer file: %s', $buffer_filename);
   http(500, 'ko');
   exit;
 }
 
-if(!touch($run_filenames['buffer'], $_SERVER['REQUEST_TIME'])) {
-  trace(LOG_ERR, 'Unable to create %s run buffer file: %s', GRIOTTE_PAYLOAD_STRUCT, $run_filenames[GRIOTTE_PAYLOAD_STRUCT]);
-  http(500, 'ko');
-  exit;
-}
-
-if(!touch($run_filenames[GRIOTTE_PAYLOAD_STRUCT], $_SERVER['REQUEST_TIME'])) {
+if(!truncate($run_filenames[GRIOTTE_PAYLOAD_STRUCT], true, $_SERVER['REQUEST_TIME'])) {
   trace(LOG_ERR, 'Unable to create %s run data file: %s', GRIOTTE_PAYLOAD_STRUCT, $run_filenames[GRIOTTE_PAYLOAD_STRUCT]);
   http(500, 'ko');
   exit;
@@ -344,13 +341,3 @@ if(!touch($run_filenames[GRIOTTE_PAYLOAD_STRUCT], $_SERVER['REQUEST_TIME'])) {
 
 finish(201);
 
-
-
-/**
- * End of the script
- */
-function finish($response_code, $reponse_body='ok') {
-  // trace(LOG_DEBUG, 'Response sent after %0.3fms', microtime(true)-GRIOTTE_STARTTIME);
-  http($response_code, $reponse_body);
-  exit;
-}
