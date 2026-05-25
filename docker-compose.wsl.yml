@@ -1,9 +1,9 @@
 version: "3"
 
 # docker build -t griotte:2026-05-28_13-53 .
-# docker build -t "$(yq -r .services.incoming.image docker-compose.desktop.yml)" .
-# docker build -t "$(yq -r .services.graphs.image docker-compose.desktop.yml)" .
-# docker stack deploy -c docker-compose.desktop.yml --prune --detach=false griotte
+# docker build -t "$(yq -r .services.incoming.image docker-compose.wsl.yml)" .
+# docker build -t "$(yq -r .services.graphs.image docker-compose.wsl.yml)" .
+# docker stack deploy -c docker-compose.wsl.yml --prune --detach=false griotte
 
 services:
 
@@ -30,7 +30,7 @@ services:
     tmpfs:
       - /tmp
     ports:
-      - "80:80"
+      - "8082:80"
     volumes:
       - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/app/config.griot.ini:/var/www/app/config.ini'
       - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/volumes/db:/var/www/db:ro,volume-nocopy'

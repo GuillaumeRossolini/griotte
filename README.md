@@ -146,7 +146,7 @@ My best guess at the actual libraries I was required to install were (some are i
 |Name|Version|Authors|URL|
 |-|-|-|-|
 |Painless Mesh|v1.5.7|Coopdis, Scotty Franzyshen, Edwin van Leeuwen, Germán Martín, Maximillian Schwartz, Doanh Doanh|https://gitlab.com/painlessMesh/painlessMesh|
-|ArduinoJson|v6.21.5|Benoit Blanchon|https://arduinojson.org/|
+|ArduinoJson|v6.21.6|Benoit Blanchon|https://arduinojson.org/|
 |AsyncTCP|v3.4.10|ESP32Async|https://github.com/ESP32Async/AsyncTCP|
 |ESPAsyncTCP|v1.2.4|dvarrel|https://github.com/dvarrel/ESPAsyncTCP|
 
@@ -164,7 +164,7 @@ For what it's worth, and in case I was mistaken with my short list, here are all
 |Adafruit-GFX-Library|v1.12.6|Adafruit|https://github.com/adafruit/Adafruit-GFX-Library|
 |Adafruit SSD1306|v2.5.16|Adafruit|https://github.com/adafruit/Adafruit_SSD1306|
 |Adafruit Unified Sensor|v1.1.15|Adafruit|https://github.com/adafruit/Adafruit_Sensor|
-|ArduinoJson|v6.21.5|Benoit Blanchon|https://arduinojson.org|
+|ArduinoJson|v6.21.6|Benoit Blanchon|https://arduinojson.org|
 |AsyncTCP|v3.4.10|ESP32Async|https://github.com/ESP32Async/AsyncTCP|
 |BME68x Sensor library|v1.3.40408|Bosch Sensortech|[1]|
 |BSEC Softare Library|v1.6.1480|Bosch Sensortech|https://www.bosch-sensortec.com/software-tools/software/bsec/|

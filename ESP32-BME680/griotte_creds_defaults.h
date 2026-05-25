@@ -9,7 +9,7 @@ const int MESH_CHANNEL = 11;
 const int MESH_HIDDEN = 1;
 const int MESH_MAXCONN = 100;
 const int MESH_ROOT_NODE = 1002444205; // esp32-c3
-const char MESH_ROOT_HOST[] = "bridge.griot.local";
+const char MESH_ROOT_HOST[] = "bridge.griot.local"; // not certain what this is used for
 
 
 #ifdef ESP32
@@ -19,7 +19,7 @@ const char STATION_PASSWORD[] = "...";
 const unsigned int WIFI_SCAN_MAX_MS_PER_CHAN = 500;
 
 #define HAS_HTTP_CREDS
-const char HTTP_ADDR[] = "192.168.1.15"; // raspberrypi zero
+const char HTTP_ADDR[] = "192.168.1.15"; // hostname or IPv4 address of the HTTP server
 const int  HTTP_PORT = 8081;
 const char HTTP_PATH[] = "/";
 const char HTTP_METHOD[] = "POST";
