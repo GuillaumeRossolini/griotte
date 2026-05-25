@@ -10,3 +10,4 @@ linux/bash
 linux/systemd
 linux/sync-readings.sh
 *.sq3
+volumes

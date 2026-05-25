@@ -1,0 +1,40 @@
+version: "3"
+
+# docker build -t griotte:2026-05-28_13-53 .
+# docker build -t "$(yq -r .services.incoming.image docker-compose.desktop.yml)" .
+# docker build -t "$(yq -r .services.graphs.image docker-compose.desktop.yml)" .
+# docker stack deploy -c docker-compose.desktop.yml --prune --detach=false griotte
+
+services:
+
+  incoming:
+    image: "griotte:2026-05-28_13-53"
+    tmpfs:
+      - /tmp
+      - /var/www/run
+    ports:
+      - "8081:80"
+    volumes:
+      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/app/config.griot.ini:/var/www/app/config.ini'
+      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/volumes/db:/var/www/db'
+    environment:
+      GRIOTTE_LABEL: Griotte
+      GRIOTTE_ROOT_PATH: /var/www
+      GRIOTTE_DB_PATH: /var/www/db
+      GRIOTTE_RUN_PATH: /var/www/run
+      GRIOTTE_BUFFER_DELAY: 300
+      GRIOTTE_NODE_DELAY: 60
+
+  graphs:
+    image: "griotte:2026-05-28_13-53"
+    tmpfs:
+      - /tmp
+    ports:
+      - "80:80"
+    volumes:
+      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/app/config.griot.ini:/var/www/app/config.ini'
+      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/volumes/db:/var/www/db:ro,volume-nocopy'
+    environment:
+      GRIOTTE_LABEL: Griotte
+      GRIOTTE_ROOT_PATH: /var/www
+      GRIOTTE_DB_PATH: /var/www/db
