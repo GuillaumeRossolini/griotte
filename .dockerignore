@@ -1,13 +1,13 @@
 .git
 .gitignore
 app/config.*.ini
+*.ino
+*.ps1
+*.sq3
 db
-debug/*.ino
 doc
 Dockerfile
 ESP32-BME680
-linux/bash
 linux/systemd
 linux/sync-readings.sh
-*.sq3
 volumes

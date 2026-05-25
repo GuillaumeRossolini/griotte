@@ -37,7 +37,7 @@ trap cleanup EXIT
 PAYLOAD=$(jq -n -c --arg msg "$MESSAGE" '{"msg": $msg}')
 
 echo "curl --silent \
-  --data 'struct=typology&signal=1&typology=$PAYLOAD' \
+  --data 'struct=bme680&signal=1&bme680=$PAYLOAD' \
   --header \"User-Agent: ${APP_NAME}/${SERIAL_NB}\" \
   --header \"Content-Type: application/x-www-form-urlencoded\" \
   --write-out \"%{response_code}\" \

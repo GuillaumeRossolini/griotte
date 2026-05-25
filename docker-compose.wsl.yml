@@ -1,19 +1,26 @@
 version: "3"
 
-# docker build -t griotte:2026-05-28_13-53 .
+# docker build -t griotte:2026-05-28_18-39 .
 # docker build -t "$(yq -r .services.incoming.image docker-compose.wsl.yml)" .
+# docker build -t "$(yq -r .services.api.image docker-compose.wsl.yml)" .
 # docker build -t "$(yq -r .services.graphs.image docker-compose.wsl.yml)" .
 # docker stack deploy -c docker-compose.wsl.yml --prune --detach=false griotte
 
 services:
 
-  incoming:
-    image: "griotte:2026-05-28_13-53"
-    tmpfs:
-      - /tmp
-      - /var/www/run
+  proxy:
+    image: nginx:1.31-alpine@sha256:8b1e78743a03dbb2c95171cc58639fef29abc8816598e27fb910ed2e621e589a
     ports:
       - "8081:80"
+      - "8082:80"
+    volumes:
+      - ./nginx/site-incoming.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/fastcgi-php.conf:/etc/nginx/snippets/fastcgi-php.conf
+
+  incoming:
+    image: "griotte:2026-05-28_18-39"
+    tmpfs:
+      - /tmp
     volumes:
       - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/app/config.griot.ini:/var/www/app/config.ini'
       - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/volumes/db:/var/www/db'
@@ -26,11 +33,9 @@ services:
       GRIOTTE_NODE_DELAY: 60
 
   graphs:
-    image: "griotte:2026-05-28_13-53"
+    image: "griotte:2026-05-28_18-39"
     tmpfs:
       - /tmp
-    ports:
-      - "8082:80"
     volumes:
       - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/app/config.griot.ini:/var/www/app/config.ini'
       - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/volumes/db:/var/www/db:ro,volume-nocopy'
