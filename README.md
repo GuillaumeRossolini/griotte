@@ -386,6 +386,7 @@ PAUSE
 * Home Assistant compatibility
 
 ## Webserver
+* the single-threaded web server was a requirement as long as both the incoming mesh messages and the graph viewing requests were served by the same webserver process (both of which attempted to lock the database files), but that's moot now and it is in fact detrimental to incoming latency (and therefore it limits the entire mesh to 6 sensors)
 * changes to the mesh topology are sent over HTTP (keeps the mesh alive) but currently not logged to the database
 * optimize writes on the Raspberry Pi Zero to reduce latency and storage wear
 * improve default shell handling: aliases and other maintenance utilities when ssh'ing into the rpi etc.
