@@ -1,14 +1,14 @@
 version: "3"
 
-# docker build -t griotte:v2.1.7 .
-# docker build -t "$(yq -r .services.api.image docker-compose.yml)" .
+# docker build -t griotte:v2.1.8 .
+# docker build -t "$(yq -r .services.incoming.image docker-compose.yml)" .
 # docker build -t "$(yq -r .services.graphs.image docker-compose.yml)" .
-# docker stack deploy -c docker-compose.yml --prune griotte
+# docker stack deploy -c docker-compose.yml --prune --detach=false griotte
 
 services:
 
-  api:
-    image: "griotte:v2.1.7"
+  incoming:
+    image: "griotte:v2.1.8"
     tmpfs:
       - /tmp
       - /var/www/run
@@ -26,7 +26,7 @@ services:
       GRIOTTE_NODE_DELAY: 60
 
   graphs:
-    image: "griotte:v2.1.7"
+    image: "griotte:v2.1.8"
     tmpfs:
       - /tmp
     ports:

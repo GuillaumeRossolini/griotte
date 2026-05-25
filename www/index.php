@@ -10,7 +10,7 @@ register_shutdown_function(function() {
 
 
 if(!empty($_POST)) {
-  require 'api.php';
+  require 'incoming.php';
   exit;
 }
 
