@@ -1,6 +1,6 @@
 version: "3"
 
-# docker build -t griotte:v2.2.0 .
+# docker build -t griotte:v2.2.1 .
 # docker service rm griotte_graphs griotte_incoming griotte_proxy
 # docker stack deploy -c docker-compose.yml --prune --detach=false griotte
 
@@ -22,7 +22,7 @@ services:
 
 
   incoming:
-    image: "griotte:v2.2.0"
+    image: "griotte:v2.2.1"
     tmpfs:
       - /tmp
       - /var/www/run
@@ -44,7 +44,7 @@ services:
           memory: 100M
 
   graphs:
-    image: "griotte:v2.2.0"
+    image: "griotte:v2.2.1"
     tmpfs:
       - /tmp
     volumes:
