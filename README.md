@@ -395,6 +395,9 @@ PAUSE
 * battery & solar recharge
 * e-ink/e-paper screen
 
+## Docker Swarm
+* Building the php-fpm image on Raspberry Pi Zero is possible but the first build took 1474s in my case, and subsequent builds still take a full minute
+
 ## What I don't know what to do about
 * cramming a bunch of these devices in a room will result in an unstable mesh, possibly due to interference
 * in fact, using these devices in a wifi-crowded space won't work

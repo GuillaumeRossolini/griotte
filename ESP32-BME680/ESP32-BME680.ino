@@ -426,6 +426,7 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
   http.beginRequest();
   http.setHttpResponseTimeout(HTTP_RESPONSE_TIMEOUT);
   http.setHttpWaitForDataDelay(HTTP_WAIT_FOR_DATA_DELAY);
+  http.post(HTTP_PATH); // must be set before the headers
 
   snprintf(userAgent, sizeof(userAgent), "%s/%u", HTTP_USERAGENT, from);
   http.sendHeader("User-Agent", userAgent);
@@ -436,7 +437,6 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
   http.sendHeader("Content-Type", "application/x-www-form-urlencoded");
   http.sendHeader("Content-Length", strlen(payloadBuffer));
 
-  http.post(HTTP_PATH);
   http.beginBody();
   http.print(payloadBuffer);
   http.endRequest();
