@@ -54,7 +54,7 @@ if(empty($_SERVER['HTTP_USER_AGENT'])) {
   exit;
 }
 
-$regexp = sprintf('~(%s)/(\d+)$~', preg_quote(GRIOTTE_LABEL));
+$regexp = sprintf('~(%s)/(\d+)~', preg_quote(GRIOTTE_LABEL));
 if(!preg_match($regexp, $_SERVER['HTTP_USER_AGENT'], $griotte_agent)) {
   trace(LOG_ERR, 'Incorrect User-Agent header: %s (%s)', $_SERVER['HTTP_USER_AGENT'], $regexp);
   http(400, 'ko');

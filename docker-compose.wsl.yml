@@ -1,6 +1,5 @@
 version: "3"
 
-# docker build -t griotte:2026-05-28_18-39 .
 # docker build -t "$(yq -r .services.incoming.image docker-compose.wsl.yml)" .
 # docker build -t "$(yq -r .services.graphs.image docker-compose.wsl.yml)" .
 # docker service rm griotte_graphs griotte_incoming griotte_proxy
@@ -15,7 +14,6 @@ services:
     volumes:
       - ./nginx/site-backends.conf:/etc/nginx/conf.d/default.conf
       - ./nginx/fastcgi-php.conf:/etc/nginx/snippets/fastcgi-php.conf
-      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/www/chart-v4.4.4.js:/var/www/html/statics/chart-v4.4.4.js:ro,volume-nocopy'
     deploy:
       resources:
         limits:
@@ -23,14 +21,12 @@ services:
           memory: 50M
 
   incoming:
-    image: "griotte:2026-05-30_19-02"
+    image: "griotte:2026-05-30_19-23"
     tmpfs:
       - /tmp
     volumes:
-      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/app/config.griot.ini:/var/www/app/config.ini:ro,volume-nocopy'
-      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/volumes/db:/var/www/db'
-      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/php-fpm/php.ini:/usr/local/etc/php/conf.d/griot.ini:ro,volume-nocopy'
-      # - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/php-fpm/php-fpm.conf:/usr/local/etc/php-fpm.d/griot.conf:ro,volume-nocopy'
+      - ./app/config.griot.ini:/var/www/app/config.ini:ro,volume-nocopy
+      - ./volumes/db:/var/www/db
     environment:
       GRIOTTE_LABEL: Griotte
       GRIOTTE_ROOT_PATH: /var/www
@@ -38,7 +34,7 @@ services:
       GRIOTTE_RUN_PATH: /var/www/run
       GRIOTTE_BUFFER_DELAY: 300
       GRIOTTE_NODE_DELAY: 60
-      GRIOTTE_DEBUG: "false"
+      GRIOTTE_DEBUG: "true"
     deploy:
       resources:
         limits:
@@ -46,18 +42,17 @@ services:
           memory: 100M
 
   graphs:
-    image: "griotte:2026-05-30_19-02"
+    image: "griotte:2026-05-30_19-23"
     tmpfs:
       - /tmp
     volumes:
-      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/app/config.griot.ini:/var/www/app/config.ini:ro,volume-nocopy'
-      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/volumes/db:/var/www/db:ro,volume-nocopy'
-      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/php-fpm/php.ini:/usr/local/etc/php/conf.d/griot.ini:ro,volume-nocopy'
+      - ./app/config.griot.ini:/var/www/app/config.ini:ro,volume-nocopy
+      - ./volumes/db:/var/www/db:ro,volume-nocopy
     environment:
       GRIOTTE_LABEL: Griotte
       GRIOTTE_ROOT_PATH: /var/www
       GRIOTTE_DB_PATH: /var/www/db
-      GRIOTTE_DEBUG: "false"
+      GRIOTTE_DEBUG: "true"
     deploy:
       resources:
         limits:

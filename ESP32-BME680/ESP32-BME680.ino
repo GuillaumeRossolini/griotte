@@ -2,7 +2,7 @@
 #include "painlessMesh.h"
 
 #define HAS_GRIOTTE_BUILD_ID
-const char GRIOTTE_BUILD_ID[] = "This is build 2026-05-29_17-11";
+const char GRIOTTE_BUILD_ID[] = "v2.2.0";
 
 /*
 # iaqSensor.staticIaq
@@ -133,7 +133,8 @@ void setup(void)
 
   Serial.println();
   Serial.println("Hi!");
-  Serial.println(GRIOTTE_BUILD_ID);
+  Serial.printf("This is build %s", GRIOTTE_BUILD_ID);
+  Serial.println();
 
   // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG | STARTUP
   // ERROR | MESH_STATUS | REMOTE | DEBUG
@@ -418,20 +419,24 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
   doc["msg"] = base64;
   serializeJson(doc, jsonBuffer);
 
+  char userAgent[100];
   const int signalStrength = WiFi.RSSI();
   snprintf(payloadBuffer, MAX_MSG_LEN, "struct=%s&signal=%d&%s=%s", dataType, signalStrength, dataType, jsonBuffer);
-
-  char userAgent[100];
-  snprintf(userAgent, sizeof(userAgent), "%s/%u", HTTP_USERAGENT, from);
 
   http.beginRequest();
   http.setHttpResponseTimeout(HTTP_RESPONSE_TIMEOUT);
   http.setHttpWaitForDataDelay(HTTP_WAIT_FOR_DATA_DELAY);
-  http.post(HTTP_PATH);
+
+  snprintf(userAgent, sizeof(userAgent), "%s/%u", HTTP_USERAGENT, from);
   http.sendHeader("User-Agent", userAgent);
+  snprintf(userAgent, sizeof(userAgent), "Build/%s", GRIOTTE_BUILD_ID);
+  http.sendHeader("User-Agent", userAgent);
+
   http.sendHeader("Connection", "keep-alive");
   http.sendHeader("Content-Type", "application/x-www-form-urlencoded");
   http.sendHeader("Content-Length", strlen(payloadBuffer));
+
+  http.post(HTTP_PATH);
   http.beginBody();
   http.print(payloadBuffer);
   http.endRequest();

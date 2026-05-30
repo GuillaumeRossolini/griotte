@@ -1,6 +1,6 @@
 version: "3"
 
-# docker build -t griotte:v2.1.8 .
+# docker build -t griotte:v2.2.0 .
 # docker service rm griotte_graphs griotte_incoming griotte_proxy
 # docker stack deploy -c docker-compose.yml --prune --detach=false griotte
 
@@ -10,6 +10,7 @@ services:
     image: nginx:1.31-alpine@sha256:8b1e78743a03dbb2c95171cc58639fef29abc8816598e27fb910ed2e621e589a
     ports:
       - "8081:80"
+      - "80:80"
     volumes:
       - ./nginx/site-backends.conf:/etc/nginx/conf.d/default.conf
       - ./nginx/fastcgi-php.conf:/etc/nginx/snippets/fastcgi-php.conf
