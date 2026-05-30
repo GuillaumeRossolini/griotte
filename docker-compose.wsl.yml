@@ -2,8 +2,8 @@ version: "3"
 
 # docker build -t griotte:2026-05-28_18-39 .
 # docker build -t "$(yq -r .services.incoming.image docker-compose.wsl.yml)" .
-# docker build -t "$(yq -r .services.api.image docker-compose.wsl.yml)" .
 # docker build -t "$(yq -r .services.graphs.image docker-compose.wsl.yml)" .
+# docker service rm griotte_graphs griotte_incoming griotte_proxy
 # docker stack deploy -c docker-compose.wsl.yml --prune --detach=false griotte
 
 services:
@@ -12,18 +12,25 @@ services:
     image: nginx:1.31-alpine@sha256:8b1e78743a03dbb2c95171cc58639fef29abc8816598e27fb910ed2e621e589a
     ports:
       - "8081:80"
-      - "8082:80"
     volumes:
-      - ./nginx/site-incoming.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/site-backends.conf:/etc/nginx/conf.d/default.conf
       - ./nginx/fastcgi-php.conf:/etc/nginx/snippets/fastcgi-php.conf
+      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/www/chart-v4.4.4.js:/var/www/html/statics/chart-v4.4.4.js:ro,volume-nocopy'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 50M
 
   incoming:
-    image: "griotte:2026-05-28_18-39"
+    image: "griotte:2026-05-30_19-02"
     tmpfs:
       - /tmp
     volumes:
-      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/app/config.griot.ini:/var/www/app/config.ini'
+      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/app/config.griot.ini:/var/www/app/config.ini:ro,volume-nocopy'
       - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/volumes/db:/var/www/db'
+      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/php-fpm/php.ini:/usr/local/etc/php/conf.d/griot.ini:ro,volume-nocopy'
+      # - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/php-fpm/php-fpm.conf:/usr/local/etc/php-fpm.d/griot.conf:ro,volume-nocopy'
     environment:
       GRIOTTE_LABEL: Griotte
       GRIOTTE_ROOT_PATH: /var/www
@@ -31,15 +38,28 @@ services:
       GRIOTTE_RUN_PATH: /var/www/run
       GRIOTTE_BUFFER_DELAY: 300
       GRIOTTE_NODE_DELAY: 60
+      GRIOTTE_DEBUG: "false"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 100M
 
   graphs:
-    image: "griotte:2026-05-28_18-39"
+    image: "griotte:2026-05-30_19-02"
     tmpfs:
       - /tmp
     volumes:
-      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/app/config.griot.ini:/var/www/app/config.ini'
+      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/app/config.griot.ini:/var/www/app/config.ini:ro,volume-nocopy'
       - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/volumes/db:/var/www/db:ro,volume-nocopy'
+      - '/home/iot/Documents/com.github/GuillaumeRossolini/griotte/php-fpm/php.ini:/usr/local/etc/php/conf.d/griot.ini:ro,volume-nocopy'
     environment:
       GRIOTTE_LABEL: Griotte
       GRIOTTE_ROOT_PATH: /var/www
       GRIOTTE_DB_PATH: /var/www/db
+      GRIOTTE_DEBUG: "false"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 200M

@@ -43,6 +43,11 @@ define('GRIOTTE_LABEL', getenv('GRIOTTE_LABEL') ?: 'Griotte');
  */
 define('GRIOTTE_STRUCT_ALLOWLIST', ['bme680', 'typology']);
 
+/**
+ * Whether to enable debug traces
+ */
+define('GRIOTTE_DEBUG', 'true' === getenv('GRIOTTE_ROOT_PATH'));
+
 
 define('GRIOTTE_DAILY_DB_PATH_TPL', '%s/daily/%d/%s/%s.sq3');
 define('GRIOTTE_RUNFILE_BUFFER_PATH_TPL', '%s/%s-buffer.run');

@@ -31,7 +31,7 @@ function http($http_status, $http_body=null): void {
  * Essentially a safer touch() function for php-fpm
  * (which apparently can't create files on the fly)
  */
-function truncate(string $filename, $do_trunc, ?int $filemtime): bool {
+function truncate(string $filename, $do_trunc, ?int $filemtime = null): bool {
   if(!file_exists($filename || $do_trunc)) {
     $_handle = fopen($filename, 'w');
     if(!$_handle) {
@@ -56,4 +56,21 @@ function trace($priority, string $errmsg_tpl): void {
   $errmsg = vsprintf($errmsg_tpl, array_slice(func_get_args(), 2));
   syslog($priority, $errmsg);
   error_log($errmsg);
+}
+
+/**
+ * Send a debug HTTP reponse header
+ */
+function dbg($file, $line, $msg_tpl) {
+  if(!GRIOTTE_DEBUG) {
+    return;
+  }
+
+  header(sprintf(
+    'X-Dbg-%f: %s:L%d; %s',
+    microtime(true),
+    ucwords(basename($file)),
+    $line,
+    vsprintf($msg_tpl, array_slice(func_get_args(), 3))
+  ));
 }

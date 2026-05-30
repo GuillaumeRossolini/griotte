@@ -1,7 +1,8 @@
 <?php
 
-error_log(E_ALL);
-ini_set('display_errors', 1);
+if(GRIOTTE_DEBUG) {
+  ini_set('display_errors', 1);
+}
 date_default_timezone_set('Europe/Paris');
 ob_start("ob_gzhandler");
 

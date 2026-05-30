@@ -55,12 +55,13 @@ if(empty($_SERVER['HTTP_USER_AGENT'])) {
 }
 
 $regexp = sprintf('~(%s)/(\d+)$~', preg_quote(GRIOTTE_LABEL));
-if(!preg_match($regexp, $_SERVER['HTTP_USER_AGENT'], $griotte)) {
+if(!preg_match($regexp, $_SERVER['HTTP_USER_AGENT'], $griotte_agent)) {
   trace(LOG_ERR, 'Incorrect User-Agent header: %s (%s)', $_SERVER['HTTP_USER_AGENT'], $regexp);
   http(400, 'ko');
   exit;
 }
 
+dbg(__FILE__, __LINE__, 'identified griotte %s', $griotte_agent[0]);
 foreach(['GRIOTTE_RUN_PATH', 'GRIOTTE_DB_PATH'] as $_constant) {
   if(!file_exists(constant($_constant))) {
     trace(LOG_ERR, 'Folder %s not found: %s', $_constant, constant($_constant));
@@ -91,7 +92,7 @@ if(!empty($_POST['signal'])) {
 
 $agent_name = null;
 $griotte_nb = null;
-list($agent_name, $griotte_nb) = explode('/', $_SERVER['HTTP_USER_AGENT']);
+list(, $agent_name, $griotte_nb) = $griotte_agent;
 $griotte_nb = floatval($griotte_nb);
 
 define('GRIOTTE_SERIAL_NB', $griotte_nb);
@@ -107,6 +108,7 @@ $msg = sprintf(
 );
 
 trace(LOG_INFO, 'Received %s payload: %s', GRIOTTE_PAYLOAD_STRUCT, $msg);
+dbg(__FILE__, __LINE__, 'Received %s payload: %s', GRIOTTE_PAYLOAD_STRUCT, $msg);
 
 
 switch(GRIOTTE_PAYLOAD_STRUCT) {
@@ -170,6 +172,7 @@ if(!preg_match("~$pattern~x", GRIOTTE_PAYLOAD_RAW, $readings)) {
   exit;
 }
 
+dbg(__FILE__, __LINE__, 'split payload: %s', json_encode($readings));
 
 $readings = array_pad($readings, $nb_fields, 'NULL');
 $readings = array_slice($readings, 1, $nb_fields);
@@ -178,6 +181,7 @@ if(!empty($readings[8])) {
 }
 
 $readings = array_map('floatval', $readings);
+dbg(__FILE__, __LINE__, 'padded payload: %s', json_encode($readings));
 
 http(200); // presume OK until told otherwise
 
@@ -218,6 +222,7 @@ finish(200);
 buffer:
 
 $buffer_filename = sprintf('%s/buffer.csv', GRIOTTE_RUN_PATH);
+dbg(__FILE__, __LINE__, 'looking at file: %s', $buffer_filename);
 
 // also creates the file if it does not exist
 $buffer_handle = fopen($buffer_filename, 'a');
@@ -236,8 +241,9 @@ if(!fwrite($buffer_handle, implode("\t", $buffer_data).PHP_EOL)) {
 
 unset($buffer_data);
 fclose($buffer_handle);
-$filemtime = filemtime($run_filenames['buffer']);
+dbg(__FILE__, __LINE__, 'written to file: %s', $buffer_filename);
 
+$filemtime = filemtime($run_filenames['buffer']);
 if(false === $filemtime) {
   if(!truncate($run_filenames[GRIOTTE_PAYLOAD_STRUCT], false, $_SERVER['REQUEST_TIME'])) {
     http(500, 'ko');
@@ -265,6 +271,8 @@ finish(200);
 commit:
 
 $buffer_handle = fopen($buffer_filename, 'r');
+dbg(__FILE__, __LINE__, 'opening file: %s', $buffer_filename);
+
 if(!$buffer_handle) {
   trace(LOG_ERR, 'Unable to open file: %s', $buffer_filename);
   http(500, 'ko');
@@ -275,6 +283,7 @@ if(!filesize($buffer_filename)) {
   finish(200);
 }
 fclose($buffer_handle);
+dbg(__FILE__, __LINE__, 'closed file: %s', $buffer_filename);
 
 // let's save every reading in a daily database, as well as a giant all-time database
 // and also in the databases from the previous and the next day to avoid timezone issues
@@ -291,6 +300,7 @@ $db_filenames = [
 
 // prepare the DB file handles and SQL statements
 foreach($db_filenames as $_db_idx => $_db_filename) {
+  dbg(__FILE__, __LINE__, 'trying db file: %s', $_db_filename);
   $new_db = !file_exists($_db_filename);
 
   $_dirname = dirname($_db_filename);
@@ -314,6 +324,7 @@ foreach($db_filenames as $_db_idx => $_db_filename) {
   );
 
   // trace(LOG_DEBUG, '%s:L%d: command: %s', __FILE__, __LINE__, $shellcmd);
+  dbg(__FILE__, __LINE__, 'executing import');
 
   $output = null;
   $res = null;
@@ -325,6 +336,7 @@ foreach($db_filenames as $_db_idx => $_db_filename) {
     exit;
   }
 }
+dbg(__FILE__, __LINE__, 'finished import');
 
 
 if(!truncate($buffer_filename, true, $_SERVER['REQUEST_TIME'])) {
@@ -332,12 +344,14 @@ if(!truncate($buffer_filename, true, $_SERVER['REQUEST_TIME'])) {
   http(500, 'ko');
   exit;
 }
+dbg(__FILE__, __LINE__, 'truncated file: %s', $buffer_filename);
 
 if(!truncate($run_filenames[GRIOTTE_PAYLOAD_STRUCT], true, $_SERVER['REQUEST_TIME'])) {
   trace(LOG_ERR, 'Unable to create %s run data file: %s', GRIOTTE_PAYLOAD_STRUCT, $run_filenames[GRIOTTE_PAYLOAD_STRUCT]);
   http(500, 'ko');
   exit;
 }
+dbg(__FILE__, __LINE__, 'truncated file: %s', $run_filenames[GRIOTTE_PAYLOAD_STRUCT]);
 
 finish(201);
 
