@@ -13,7 +13,6 @@ services:
       - "8081:80"
     volumes:
       - ./nginx/site-backends.conf:/etc/nginx/conf.d/default.conf
-      - ./nginx/fastcgi-php.conf:/etc/nginx/snippets/fastcgi-php.conf
     deploy:
       resources:
         limits:
