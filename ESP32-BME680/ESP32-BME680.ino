@@ -2,7 +2,7 @@
 #include "painlessMesh.h"
 
 #define HAS_GRIOTTE_BUILD_ID
-const char GRIOTTE_BUILD_ID[] = "This is build 2026-05-10_08-46";
+const char GRIOTTE_BUILD_ID[] = "This is build 2026-05-29_17-11";
 
 /*
 # iaqSensor.staticIaq
@@ -99,8 +99,9 @@ WiFiClient wifi;
 byte sendHttp(unsigned long, uint32_t, const char*, String &);
 IPAddress wanIP(0,0,0,0);
 static const unsigned int HTTP_RESPONSE_TIMEOUT = 350;
-static const unsigned int HTTP_WAIT_FOR_DATA_DELAY = 200;
+static const unsigned int HTTP_WAIT_FOR_DATA_DELAY = 50;
 static const unsigned int HTTP_NB_RETRIES = 2;
+HttpClient http(wifi, HTTP_ADDR, HTTP_PORT);
 #endif
 
 
@@ -142,14 +143,14 @@ void setup(void)
   Serial.println("This is ESP32");
   // mesh.setDebugMsgTypes(ERROR | MESH_STATUS | CONNECTION | SYNC | MSG_TYPES | REMOTE | DEBUG);
   // mesh.setDebugMsgTypes(ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG);
-  mesh.setDebugMsgTypes(ERROR | STARTUP | CONNECTION | REMOTE | DEBUG);
+  mesh.setDebugMsgTypes(ERROR | REMOTE | DEBUG);
 #endif
 
 #ifdef ESP8266
   Serial.println("This is ESP8266");
   // mesh.setDebugMsgTypes(ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG);
   // mesh.setDebugMsgTypes(ERROR | STARTUP | REMOTE | DEBUG);
-  mesh.setDebugMsgTypes(ERROR | STARTUP | CONNECTION | REMOTE | DEBUG);
+  mesh.setDebugMsgTypes(ERROR | REMOTE | DEBUG);
   setupIaqSensor();
 #endif
 
@@ -298,7 +299,7 @@ void meshCallback_OnReceived(uint32_t from, String &msg) {
 
 #ifdef HAS_STATION_CREDS
   byte isSuccess = FALSE;
-  for(int i=0; i<=HTTP_NB_RETRIES; ++i) {
+  for(int i=0; i<HTTP_NB_RETRIES; ++i) {
     isSuccess = sendHttp(receivedAt, from, DATASTRUCT_BME680, msg);
     if(isSuccess || FALSE == hasWlanIP) {
       break;
@@ -328,8 +329,8 @@ void meshCallback_OnChangedConnections() {
 }
 
 void meshCallback_OnNodeTimeAdjusted(int32_t offset) {
-  Serial.printf("OnNodeTimeAdjusted at %u", offset);
-  Serial.println();
+  // Serial.printf("OnNodeTimeAdjusted at %u", offset);
+  // Serial.println();
 }
 
 void meshCallback_OnNodeDelayReceived(uint32_t nodeId, int32_t delay) {
@@ -385,17 +386,27 @@ void setupNetwork() {
 #ifdef HAS_STATION_CREDS
 byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, String &msg) {
   const unsigned long startedAt = millis();
-  const int signalStrength = WiFi.RSSI();
+
+  // Serial.printf("HTTP endpoint is %s on port %u", HTTP_ADDR, HTTP_PORT);
+  // Serial.println();
 
   Serial.printf("HTTP message %s at %us from #%u: \t%s", dataType, (int) receivedAt/1000, from, msg.c_str());
 
-  if(FALSE == hasWlanIP) {
-    Serial.println("\tnot forwarded (no WAN IP)");
-    return TRUE;
-  }
+  // if(MESH_ROOT_NODE != currentNode) {
+  //   Serial.println("\tnot forwarded (not the root node)");
+  //   return TRUE;
+  // }
 
-  if(MESH_ROOT_NODE != currentNode) {
-    Serial.println("\tnot forwarded (not the root node)");
+  if(WL_CONNECTED != WiFi.status()) {
+    if(TRUE == hasWlanIP) {
+      Serial.println("\tnot forwarded (lost WAN IP)");
+      sprintf(outBuffer, "Message from #%u not forwarded (lost WAN IP)", from);
+      mesh.sendBroadcast(outBuffer);
+      ESP.restart();
+    }
+    Serial.println("\tnot forwarded (no WAN IP)");
+    sprintf(outBuffer, "Message from #%u not forwarded (no WAN IP)", from);
+    mesh.sendBroadcast(outBuffer);
     return TRUE;
   }
 
@@ -407,21 +418,18 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
   doc["msg"] = base64;
   serializeJson(doc, jsonBuffer);
 
+  const int signalStrength = WiFi.RSSI();
   snprintf(payloadBuffer, MAX_MSG_LEN, "struct=%s&signal=%d&%s=%s", dataType, signalStrength, dataType, jsonBuffer);
 
   char userAgent[100];
-  sprintf(userAgent, "%s/%u", HTTP_USERAGENT, from);
-
-  HttpClient http = HttpClient(wifi, HTTP_ADDR, HTTP_PORT);
-
-  http.setHttpResponseTimeout(HTTP_RESPONSE_TIMEOUT);
-  http.setHttpWaitForDataDelay(HTTP_WAIT_FOR_DATA_DELAY);
-  http.noDefaultRequestHeaders();
+  snprintf(userAgent, sizeof(userAgent), "%s/%u", HTTP_USERAGENT, from);
 
   http.beginRequest();
+  http.setHttpResponseTimeout(HTTP_RESPONSE_TIMEOUT);
+  http.setHttpWaitForDataDelay(HTTP_WAIT_FOR_DATA_DELAY);
   http.post(HTTP_PATH);
   http.sendHeader("User-Agent", userAgent);
-  http.sendHeader("Connection", "close");
+  http.sendHeader("Connection", "keep-alive");
   http.sendHeader("Content-Type", "application/x-www-form-urlencoded");
   http.sendHeader("Content-Length", strlen(payloadBuffer));
   http.beginBody();
@@ -435,32 +443,32 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
     http.read();  // force socket cleanup & discard response
   }
 
-  http.stop();
-
   Serial.printf("\t %uo payload in %ums (%d/%d dBm): status %d", strlen(payloadBuffer), timeSpent, signalStrength, WiFi.RSSI(), statusCode);
   Serial.println();
 
-  const byte httpSuccess = (200 >= statusCode && 299 <= statusCode);
+  const byte httpSuccess = (statusCode >= 200 && statusCode <= 299);
   const byte httpFailure = (statusCode <= 0);
   if(httpSuccess) {
     // Serial.printf("\tSent %uo in %ums via %s (%d dBm): HTTP %d", strlen(payloadBuffer), timeSpent, wanIP.toString().c_str(), statusCode);
     // Serial.println();
   }
   else if (httpFailure) {
-    // Serial.printf(
-    //   "Failed to forward %uo from #%u in %ums: error code %d",
-    //   strlen(payloadBuffer), from, timeSpent, statusCode
-    // );
-    // Serial.println();
-    // Serial.print('Data was: ');
-    // Serial.println(payloadBuffer);
+    sprintf(outBuffer, "Failed to forward %uo from #%u in %ums: error code %d", strlen(payloadBuffer), from, timeSpent, statusCode);
+    mesh.sendBroadcast(outBuffer);
+    Serial.printf(
+      "Failed to forward %uo from #%u in %ums: error code %d",
+      strlen(payloadBuffer), from, timeSpent, statusCode
+    );
+    Serial.println();
+    Serial.print("Data was: ");
+    Serial.println(payloadBuffer);
   }
   else {
-    // Serial.printf(
-    //   "Failed to forward %uo from #%u in %ums: HTTP %d",
-    //   strlen(payloadBuffer), from, timeSpent, statusCode
-    // );
-    // Serial.println();
+    Serial.printf(
+      "Failed to forward %uo from #%u in %ums: HTTP %d",
+      strlen(payloadBuffer), from, timeSpent, statusCode
+    );
+    Serial.println();
   }
 
   // Serial.printf("Free HEAP after meshCallback_OnReceived: %u", ESP.getFreeHeap());
