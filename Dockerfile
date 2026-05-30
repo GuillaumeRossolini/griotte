@@ -1,6 +1,7 @@
 FROM php:8-fpm-trixie@sha256:4528adc6695b76250c0d2290c52b663d1b5c8e7d4df2a7b86af214524f549c5c
 # PHP 8.5.6 (built: May 19 2026 23:08:03) (NTS)
 
+ADD php-fpm/php.ini /usr/local/etc/php/conf.d/griot.ini
 ADD php-fpm/fpm-griot.conf /tmp/fpm-griot.conf
 RUN cat /usr/local/etc/php-fpm.d/*.conf /tmp/fpm-*.conf > /tmp/php-fpm.conf
 
