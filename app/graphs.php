@@ -295,6 +295,23 @@ $title = sprintf(
  */
 
 $sql = <<<SQL
+WITH _readings AS (
+  SELECT created_at
+    , AVG(hpa) AS hpa
+    , AVG(hum) AS hum
+    , AVG(temp) AS temp
+    , AVG(iaq) AS iaq
+    , AVG(eco2) AS eco2
+    , AVG(voc) AS voc
+    , AVG(accuracy) AS accuracy
+    , AVG(heap) AS heap
+  FROM sensor_reading
+  WHERE true
+    AND node = ?
+    AND created_at BETWEEN ? AND ?
+  GROUP BY created_at
+)
+
 SELECT created_at
   , CASE WHEN hpa <= 0 THEN 0 ELSE ROUND(hpa/100, 2)-920 END AS hpa
   , ROUND(hum, 2) AS hum
@@ -304,10 +321,7 @@ SELECT created_at
   , ROUND(voc*100, 2) AS voc
   , ROUND(accuracy/3*100, 2) AS accuracy
   , ROUND(heap, 2) AS heap
-FROM sensor_reading
-WHERE true
-  AND node = ?
-  AND created_at BETWEEN ? AND ?
+FROM _readings
 ORDER BY created_at ASC
 SQL;
 
