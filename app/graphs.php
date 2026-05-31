@@ -31,7 +31,9 @@ unset($date_filter, $match);
   <head>
     <meta charset="utf-8" />
     <title><?php echo html('%s metrics for %s', GRIOTTE_LABEL, $start_local->format('Y-m-d')) ?></title>
-    <script src="./?script=chart-v4.4.4.js"></script>
+    <script src="./?script=chart-v4.5.1.js"></script>
+    <script src="./?script=luxon-v2.js"></script>
+    <script src="./?script=chartjs-adapter-luxon-v1.3.1.js"></script>
   </head>
 
 <style type="text/css">
@@ -300,10 +302,10 @@ WITH _readings AS (
     , AVG(hpa) AS hpa
     , AVG(hum) AS hum
     , AVG(temp) AS temp
-    , AVG(iaq) AS iaq
-    , AVG(eco2) AS eco2
-    , AVG(voc) AS voc
-    , AVG(accuracy) AS accuracy
+    , CASE WHEN AVG(voc) = 0 THEN NULL ELSE AVG(iaq) END AS iaq
+    , CASE WHEN AVG(voc) = 0 THEN NULL ELSE AVG(eco2) END AS eco2
+    , CASE WHEN AVG(voc) = 0 THEN NULL ELSE AVG(voc) END AS voc
+    , CASE WHEN AVG(voc) = 0 THEN NULL ELSE AVG(accuracy) END AS accuracy
     , AVG(heap) AS heap
   FROM sensor_reading
   WHERE true
@@ -342,9 +344,10 @@ foreach($health as $node_key => $node_average) {
 
   foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $res) {
     $created_at = (new DateTimeImmutable($res['created_at'], $tz_utc))
-      ->setTimezone($tz_local);
+      ->setTimezone($tz_local)
+      ->format(DateTimeInterface::ATOM);
     unset($res['created_at']);
-    $sensors[$node_key][$created_at->format('Y-m-d H:i:s')] = array_map('intval', $res);
+    $sensors[$node_key][$created_at] = array_map('intval', $res);
   }
 
   if(empty($sensors[$node_key])) {
@@ -382,60 +385,99 @@ foreach($health as $node_key => $node_average) {
   <script>
     new Chart(document.getElementById(<?php echo json_encode(sprintf('room-%s', $node_key)) ?>), {
       data: {
-        labels: <?php echo json_encode($labels[$node_key]) ?>,
         datasets: [
           <?php foreach($datasets as $field => $ds): ?>
           {
             type: 'line',
             label: <?php echo json_encode($ds['label']) ?>,
-            data: <?php echo json_encode(array_map('intval', array_column($sensors[$node_key], $field))) ?>,
+            data: <?php
+              echo json_encode(array_map(function(string $ts, array $row) use ($field, $tz_local) {
+                return [
+                  'x' => $ts,
+                  'y' => $row[$field] ?: null,
+                ];
+              }, array_keys($sensors[$node_key]), $sensors[$node_key]));
+            ?>,
             borderWidth: 1,
             weight: 1,
             order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'right',
             borderColor: <?php echo json_encode($ds['color']) ?>,
-            backgroundColor: <?php echo json_encode($ds['color']) ?>
+            backgroundColor: <?php echo json_encode($ds['color']) ?>,
+            spanGaps: false
           },
           <?php endforeach; ?>
           {
             type: 'line',
             label: 'Barometric [hPa-920]',
-            data: <?php echo json_encode(array_map('intval', array_column($sensors[$node_key], 'hpa'))) ?>,
+            data: <?php
+              echo json_encode(array_map(function(string $ts, array $row) use ($tz_local) {
+                return [
+                  'x' => $ts,
+                  'y' => $row['hpa'] ?: null,
+                ];
+              }, array_keys($sensors[$node_key]), $sensors[$node_key]));
+            ?>,
             borderWidth: 1,
             order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'left',
             borderColor: '#c9cbcf',
-            backgroundColor: '#c9cbcf'
+            backgroundColor: '#c9cbcf',
+            spanGaps: false
           },
           {
             type: 'line',
             label: 'Temperature [°C]',
-            data: <?php echo json_encode(array_map('intval', array_column($sensors[$node_key], 'temp'))) ?>,
+            data: <?php
+              echo json_encode(array_map(function(string $ts, array $row) use ($tz_local) {
+                return [
+                  'x' => $ts,
+                  'y' => $row['temp'] ?: null,
+                ];
+              }, array_keys($sensors[$node_key]), $sensors[$node_key]));
+            ?>,
             borderWidth: 1,
             order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'left',
             borderColor: '#ff0000',
-            backgroundColor: '#ff0000'
+            backgroundColor: '#ff0000',
+            spanGaps: false
           },
           {
             type: 'line',
             label: 'Humidity [%]',
-            data: <?php echo json_encode(array_map('intval', array_column($sensors[$node_key], 'hum'))) ?>,
+            data: <?php
+              echo json_encode(array_map(function(string $ts, array $row) use ($tz_local) {
+                return [
+                  'x' => $ts,
+                  'y' => $row['hum'] ?: null,
+                ];
+              }, array_keys($sensors[$node_key]), $sensors[$node_key]));
+            ?>,
             borderWidth: 1,
             order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'left',
             borderColor: '#0000ff',
-            backgroundColor: '#0000ff'
+            backgroundColor: '#0000ff',
+            spanGaps: false
           },
           {
             type: 'line',
             label: 'IAQ [%]',
-            data: <?php echo json_encode(array_map('intval', array_column($sensors[$node_key], 'iaq'))) ?>,
+            data: <?php
+              echo json_encode(array_map(function(string $ts, array $row) use ($tz_local) {
+                return [
+                  'x' => $ts,
+                  'y' => $row['iaq'] ?: null,
+                ];
+              }, array_keys($sensors[$node_key]), $sensors[$node_key]));
+            ?>,
             borderWidth: 1,
             order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'left',
             borderColor: '#96f',
-            backgroundColor: '#96f'
+            backgroundColor: '#96f',
+            spanGaps: false
           }
         ]
       },
@@ -447,6 +489,16 @@ foreach($health as $node_key => $node_average) {
           }
         },
         scales: {
+          x: {
+            type: 'time',
+            time: {
+              tooltipFormat: 'HH:mm:ss',
+              displayFormats: {
+                second: 'HH:mm:ss',
+                minute: 'HH:mm'
+              }
+            }
+          },
           right: {
             beginAtZero: true,
             position: 'right'
