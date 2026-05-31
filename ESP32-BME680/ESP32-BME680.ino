@@ -307,7 +307,7 @@ void meshCallback_OnReceived(uint32_t from, String &msg) {
     }
   }
 #else ESP32
-  Serial.printf("HTTP message %s at %us from #%u: \t%s", DATASTRUCT_BME680, (int) receivedAt/1000, from, msg.c_str());
+  Serial.printf("At %us: %s message %s from #%u: \t%s", (int) receivedAt/1000, DATASTRUCT_BME680, from, msg.c_str());
   Serial.println();
 #endif
 }
@@ -391,7 +391,7 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
   // Serial.printf("HTTP endpoint is %s on port %u", HTTP_ADDR, HTTP_PORT);
   // Serial.println();
 
-  Serial.printf("HTTP message %s at %us from #%u: \t%s", dataType, (int) receivedAt/1000, from, msg.c_str());
+  Serial.printf("At %us: %s message %s from #%u: \t%s", (int) receivedAt/1000, DATASTRUCT_BME680, from, msg.c_str());
 
   // if(MESH_ROOT_NODE != currentNode) {
   //   Serial.println("\tnot forwarded (not the root node)");
@@ -448,7 +448,7 @@ byte sendHttp(unsigned long receivedAt, uint32_t from, const char* dataType, Str
     http.read();  // force socket cleanup & discard response
   }
 
-  Serial.printf("\t %uo payload in %ums (%d/%d dBm): status %d", strlen(payloadBuffer), timeSpent, signalStrength, WiFi.RSSI(), statusCode);
+  Serial.printf("\t %uo HTTP payload in %ums (%d/%d dBm): status %d", strlen(payloadBuffer), timeSpent, signalStrength, WiFi.RSSI(), statusCode);
   Serial.println();
 
   const byte httpSuccess = (statusCode >= 200 && statusCode <= 299);
