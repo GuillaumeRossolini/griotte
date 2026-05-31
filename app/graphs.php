@@ -136,14 +136,9 @@ WITH _readings AS (
     , eco2
     , voc*100 AS voc
     , accuracy/3*100 AS accuracy
-    , LAG (uptime) OVER (PARTITION BY node ORDER BY created_at) AS lag
+    , LAG (uptime) OVER (PARTITION BY node ORDER BY created_at) AS prev_uptime
   FROM sensor_reading
   WHERE created_at BETWEEN ? AND ?
-)
-, _reboots AS (
-  SELECT node, created_at, lag
-  FROM _readings
-  WHERE uptime < lag
 )
 
 SELECT
@@ -156,11 +151,11 @@ SELECT
     %s
     ELSE 3
   END AS floor
-  , TIME(MIN(created_at)) AS earliest_reading
-  , TIME(MAX(created_at)) AS latest_reading
+  , MIN(created_at) AS earliest_reading
+  , MAX(created_at) AS latest_reading
   , MIN(heap)/1024 AS heap_ko
   , MAX(uptime) /60/60 AS uptime_h
-  , COUNT(_reboots.created_at) AS nb_reboots
+  , SUM(CASE WHEN uptime < prev_uptime THEN 1 ELSE 0 END) AS nb_reboots
   , COUNT(1) AS nb_readings
   , AVG(hpa) AS avg_hpa
   , AVG(hum) AS avg_hum
@@ -169,9 +164,8 @@ SELECT
   , AVG(eco2) AS avg_eco2
   , AVG(voc*100) AS avg_voc
 FROM _readings
-LEFT JOIN _reboots USING (node, created_at)
 GROUP BY node
-ORDER BY floor, node_lbl
+ORDER BY floor DESC, node_lbl ASC
 SQL;
 
 
@@ -201,13 +195,14 @@ $datasets = [
   'voc'  => ['label' => 'VOC',  'color' => '#4bc0c0'],
 ];
 
-$earliest_raw = min(array_column($health, 'earliest_reading'));
-$latest_raw = max(array_column($health, 'latest_reading'));
-
-$earliest = (new DateTimeImmutable($earliest_raw, $tz_utc))
+$earliest_times = array_filter(array_column($health, 'earliest_reading'));
+natsort($earliest_times);
+$earliest = (new DateTimeImmutable(reset($earliest_times), $tz_utc))
   ->setTimezone($tz_local);
 
-$latest = (new DateTimeImmutable($latest_raw, $tz_utc))
+$latest_times = array_filter(array_column($health, 'latest_reading'));
+natsort($latest_times);
+$latest = (new DateTimeImmutable(reset($latest_times), $tz_utc))
   ->setTimezone($tz_local);
 
 $title = sprintf(
@@ -224,6 +219,7 @@ $title = sprintf(
 <table>
   <thead>
     <tr>
+      <th>Floor</th>
       <th>Node</th>
       <th>Earliest</th>
       <th>Latest</th>
@@ -246,6 +242,7 @@ $title = sprintf(
     ?>
 
     <tr>
+      <td></td>
       <td role="nb"><?php echo html('%d nodes', $nb_nodes)?></td>
       <td></td>
       <td></td>
@@ -270,7 +267,8 @@ $title = sprintf(
       ?>
 
       <tr>
-        <td><?php echo html('%s@F%d', $res['node_lbl'], $res['floor']);?></td>
+        <td role="nb"><?php echo html($res['floor']);?></td>
+        <td><acronym title="<?php echo html('Node #%s', $res['node'])?>"><?php echo html($res['node_lbl']);?></acronym></td>
         <td role="nb"><?php echo html($earliest->format('H:i:s'))?></td>
         <td role="nb"><?php echo html($latest->format('H:i:s'))?></td>
         <td role="nb"><?php echo html($res['nb_readings'])?></td>
@@ -310,7 +308,7 @@ FROM sensor_reading
 WHERE true
   AND node = ?
   AND created_at BETWEEN ? AND ?
-ORDER BY created_at
+ORDER BY created_at ASC
 SQL;
 
 $stmt = $db->prepare($sql);

@@ -8,7 +8,7 @@ TMP_RESPONSE="$(mktemp)"
 TMP_TIMINGS="$(mktemp)"
 
 function cleanup() {
-  rm $TMP_REQUEST $TMP_HEADERS $TMP_RESPONSE
+  rm $TMP_REQUEST $TMP_HEADERS $TMP_RESPONSE $TMP_TIMINGS
 }
 
 trap cleanup EXIT
