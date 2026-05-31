@@ -318,6 +318,7 @@ $labels = [];
 $titles = [];
 foreach($health as $node_key => $node_average) {
   $sensors[$node_key] = [];
+  $labels[$node_key] = [];
 
   $stmt->execute([
     $node_average['node'],
@@ -326,23 +327,26 @@ foreach($health as $node_key => $node_average) {
   ]);
 
   foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $res) {
-    $created_at = $res['created_at'];
+    $created_at = (new DateTimeImmutable($res['created_at'], $tz_utc))
+      ->setTimezone($tz_local);
     unset($res['created_at']);
-    $sensors[$node_key][$created_at] = array_map('intval', $res);
-    $t = new DateTimeImmutable($created_at, $tz_utc);
-    $labels[$node_key][] = $t->setTimezone($tz_local)->format('H:i:s');
+    $sensors[$node_key][$created_at->format('Y-m-d H:i:s')] = array_map('intval', $res);
   }
 
   if(empty($sensors[$node_key])) {
     continue;
   }
 
+  $labels[$node_key] = array_keys($sensors[$node_key]);
+
   reset($sensors[$node_key]);
-  $earliest = (new DateTimeImmutable(key($sensors[$node_key]), $tz_utc))
+  $start_at = key($sensors[$node_key]);
+  $earliest = (new DateTimeImmutable($start_at, $tz_utc))
     ->setTimezone($tz_local);
 
   end($sensors[$node_key]);
-  $latest = (new DateTimeImmutable(key($sensors[$node_key]), $tz_utc))
+  $end_at = key($sensors[$node_key]);
+  $latest = (new DateTimeImmutable($end_at, $tz_utc))
     ->setTimezone($tz_local);
 
   reset($sensors[$node_key]);
