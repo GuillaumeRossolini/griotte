@@ -224,7 +224,7 @@ $title = sprintf(
       <th>Earliest</th>
       <th>Latest</th>
       <th>Readings</th>
-      <th>Heap size</th>
+      <th>Free heap</th>
       <th>Reboots</th>
       <th>Uptime</th>
       <th>AVG Atmo</th>
