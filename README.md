@@ -378,10 +378,12 @@ PAUSE
 * refactor the docs
 
 ## Microprogram
-* when the Raspberry Pi Zero becomes unavailable for a while, the mesh collapses: restarting the ESP32 should be enough to fox this;
+* when the Raspberry Pi Zero becomes unavailable for a while, the mesh collapses: restarting the ESP32 should be enough to for this (how about an HTTP request on /ping every few minutes?)
 * when a sensor starts returning incorrect readings, (maybe?) its node should recalibrate or self reset
 * batch the ESP32>RPI0 HTTP requests to better scale the number of nodes in the mesh w/r/t HTTP round-trip times
-* implement gradual backoff for the HTTP messages to the RPI0 in case the web server goes down, so that the mesh doesn't destabilize as a result of the increased delays and the ESP32 being busy
+* implement gradual backoff for the HTTP messages to the RPI0 in case the web server goes down, so that the mesh doesn't destabilize as a result of the increased delays and the ESP32 being busy (also see the first bullet point)
+* health of the node sent to a dedicated endpoint
+* estimate how much time the ESP32 spends on HTTP versus listening to the mesh
 * upgrade ArduinoJson lib
 * upgrade BSEC lib
 * Home Assistant compatibility
