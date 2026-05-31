@@ -378,6 +378,7 @@ PAUSE
 * refactor the docs
 
 ## Microprogram
+* when the Raspberry Pi Zero becomes unavailable for a while, the mesh collapses: restarting the ESP32 should be enough to fox this;
 * when a sensor starts returning incorrect readings, (maybe?) its node should recalibrate or self reset
 * batch the ESP32>RPI0 HTTP requests to better scale the number of nodes in the mesh w/r/t HTTP round-trip times
 * implement gradual backoff for the HTTP messages to the RPI0 in case the web server goes down, so that the mesh doesn't destabilize as a result of the increased delays and the ESP32 being busy
@@ -386,6 +387,7 @@ PAUSE
 * Home Assistant compatibility
 
 ## Webserver
+* (recent regression) the graphs are incomplete, they are filled to maybe half their projected timeline;
 * changes to the mesh topology are sent over HTTP (keeps the mesh alive) but currently not logged to the database
 * optimize writes on the Raspberry Pi Zero to reduce latency and storage wear (crontab service?)
 * improve default shell handling: aliases and other maintenance utilities when ssh'ing into the rpi etc.
