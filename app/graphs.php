@@ -202,7 +202,7 @@ $earliest = (new DateTimeImmutable(reset($earliest_times), $tz_utc))
 
 $latest_times = array_filter(array_column($health, 'latest_reading'));
 natsort($latest_times);
-$latest = (new DateTimeImmutable(reset($latest_times), $tz_utc))
+$latest = (new DateTimeImmutable(end($latest_times), $tz_utc))
   ->setTimezone($tz_local);
 
 $title = sprintf(
