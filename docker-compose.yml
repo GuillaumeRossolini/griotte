@@ -43,7 +43,7 @@ services:
       GRIOTTE_DEBUG: "false"
     deploy:
       mode: replicated
-      replicas: 2
+      replicas: 1
       endpoint_mode: dnsrr
       resources:
         limits:
