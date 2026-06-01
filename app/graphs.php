@@ -3,6 +3,7 @@
 if(GRIOTTE_DEBUG) {
   ini_set('display_errors', 1);
 }
+
 date_default_timezone_set('Europe/Paris');
 ob_start("ob_gzhandler");
 
@@ -31,10 +32,9 @@ unset($date_filter, $match);
   <head>
     <meta charset="utf-8" />
     <title><?php echo html('%s metrics for %s', GRIOTTE_LABEL, $start_local->format('Y-m-d')) ?></title>
-    <script src="./?script=chart-v4.5.1.js"></script>
-    <script src="./?script=luxon-v2.js"></script>
-    <script src="./?script=chartjs-adapter-luxon-v1.3.1.js"></script>
-  </head>
+    <script src="/statics/chart-v4.5.1.js"></script>
+    <script src="/statics/luxon-v2.js"></script>
+    <script src="/statics/chartjs-adapter-luxon-v1.3.1.js"></script>
 
 <style type="text/css">
   h1 {
@@ -67,6 +67,8 @@ unset($date_filter, $match);
     text-align: right;
   }
 </style>
+
+  </head>
 
 <body>
 
