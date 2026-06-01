@@ -11,3 +11,4 @@ ESP32-BME680
 linux/systemd
 linux/sync-readings.sh
 volumes
+www/statics
