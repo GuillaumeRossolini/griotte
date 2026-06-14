@@ -28,15 +28,6 @@ $end_utc = $start_local
   ->sub(new DateInterval('PT1S'))
   ->setTimezone($tz_utc);
 
-$start_previous_utc = $start_utc
-   ->sub(new DateInterval('P1D'))
-   ->setTimezone($tz_utc);
-
-$end_previous_utc = $start_previous_utc
-  ->add(new DateInterval('P1D'))
-  ->sub(new DateInterval('PT1S'))
-  ->setTimezone($tz_utc);
-
 unset($date_filter, $match);
 
 $nodes_cfg = [];
