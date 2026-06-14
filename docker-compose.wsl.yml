@@ -4,6 +4,7 @@ version: "3"
 # docker build -t "$(yq -r .services.graphs.image docker-compose.wsl.yml)" .
 # docker service rm griotte_graphs griotte_incoming griotte_proxy
 # docker stack deploy -c docker-compose.wsl.yml --prune --detach=false griotte
+# docker stack deploy -c <(yq '.services |= with_entries(select(.key == "graphs"))' docker-compose.wsl.yml) --detach=false griotte
 
 services:
 
