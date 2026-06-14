@@ -4,8 +4,11 @@ if(GRIOTTE_DEBUG) {
   ini_set('display_errors', 1);
 }
 
-date_default_timezone_set('Europe/Paris');
-ob_start("ob_gzhandler");
+$config_filename = GRIOTTE_ROOT_PATH.'/app/config.ini';
+$config = parse_ini_file($config_filename, true);
+
+date_default_timezone_set($config['timezone']);
+ob_start('ob_gzhandler');
 
 $date_filter = empty($_GET['d']) ? date('Y-m-d') : $_GET['d'];
 if(!preg_match('~^(\d{4})-(\d{2})-(\d{2})$~', $date_filter, $match) or !checkdate($match[2], $match[3], $match[1])) {
@@ -13,7 +16,7 @@ if(!preg_match('~^(\d{4})-(\d{2})-(\d{2})$~', $date_filter, $match) or !checkdat
 }
 
 $tz_utc = new DateTimeZone('UTC');
-$tz_local = new DateTimeZone(date_default_timezone_get());
+$tz_local = new DateTimeZone($config['timezone']);
 
 $start_local = new DateTimeImmutable($date_filter, $tz_local);
 
@@ -21,6 +24,15 @@ $start_utc = $start_local
   ->setTimezone($tz_utc);
 
 $end_utc = $start_local
+  ->add(new DateInterval('P1D'))
+  ->sub(new DateInterval('PT1S'))
+  ->setTimezone($tz_utc);
+
+$start_previous_utc = $start_utc
+   ->sub(new DateInterval('P1D'))
+   ->setTimezone($tz_utc);
+
+$end_previous_utc = $start_previous_utc
   ->add(new DateInterval('P1D'))
   ->sub(new DateInterval('PT1S'))
   ->setTimezone($tz_utc);
@@ -110,24 +122,15 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 
 /**
- * Start the age with a high-level graph of all the nodes for the chosen date,
+ * Start the age with a high-level visualization of all the nodes for the chosen date,
  * with their average readings and their health
  */
 
-$config_filename = GRIOTTE_ROOT_PATH.'/app/config.ini';
-$config = parse_ini_file($config_filename, true);
-
 $when_nodes = [];
-foreach($config['node_labels'] as $_idx => $_val) {
-  $_idx = explode('_', $_idx);
-  array_shift($_idx);
-  $when_nodes[] = sprintf("WHEN '%s' THEN '%s'", implode(' ', $_idx), $_val);
-}
 $when_floors = [];
-foreach($config['node_floors'] as $_idx => $_val) {
-  $_idx = explode('_', $_idx);
-  array_shift($_idx);
-  $when_floors[] = sprintf("WHEN '%s' THEN %d", implode(' ', $_idx), $_val);
+foreach($config['nodes']['esp'] as $_idx => $_node) {
+  $when_nodes[] = sprintf("WHEN '%s' THEN '%s'", $_idx, $_node['label']);
+  $when_floors[] = sprintf("WHEN '%s' THEN '%d'", $_idx, $_node['floor']);
 }
 
 $sql_tpl = <<<SQL
