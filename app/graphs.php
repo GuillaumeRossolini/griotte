@@ -7,7 +7,7 @@ if(GRIOTTE_DEBUG) {
 $config_filename = GRIOTTE_ROOT_PATH.'/app/config.ini';
 $config = parse_ini_file($config_filename, true);
 
-date_default_timezone_set($config['timezone']);
+date_default_timezone_set($config['general']['timezone']);
 ob_start('ob_gzhandler');
 
 $date_filter = empty($_GET['d']) ? date('Y-m-d') : $_GET['d'];
@@ -16,7 +16,7 @@ if(!preg_match('~^(\d{4})-(\d{2})-(\d{2})$~', $date_filter, $match) or !checkdat
 }
 
 $tz_utc = new DateTimeZone('UTC');
-$tz_local = new DateTimeZone($config['timezone']);
+$tz_local = new DateTimeZone(date_default_timezone_get());
 
 $start_local = new DateTimeImmutable($date_filter, $tz_local);
 
@@ -38,6 +38,15 @@ $end_previous_utc = $start_previous_utc
   ->setTimezone($tz_utc);
 
 unset($date_filter, $match);
+
+$nodes_cfg = [];
+foreach($config['nodes'] as $_key => $_val) {
+  if(!preg_match('~^esp\.(\d+)\.(label|floor|orientation)$~', $_key, $_match)) {
+    continue;
+  }
+  list(, $_node, $_idx) = $_match;
+  $nodes_cfg[$_node][$_idx] = $_val;
+}
 ?>
 <!doctype html>
 <html lang="en-US">
@@ -126,11 +135,10 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
  * with their average readings and their health
  */
 
-$when_nodes = [];
-$when_floors = [];
-foreach($config['nodes']['esp'] as $_idx => $_node) {
-  $when_nodes[] = sprintf("WHEN '%s' THEN '%s'", $_idx, $_node['label']);
-  $when_floors[] = sprintf("WHEN '%s' THEN '%d'", $_idx, $_node['floor']);
+$when = [];
+foreach($nodes_cfg as $_node => $_cfg) {
+  $when['label'][] = sprintf("WHEN '%s' THEN '%s'", $_node, $_cfg['label']);
+  $when['floor'][] = sprintf("WHEN '%s' THEN '%d'", $_node, $_cfg['floor']);
 }
 
 $sql_tpl = <<<SQL
@@ -176,7 +184,11 @@ ORDER BY floor DESC, node_lbl ASC
 SQL;
 
 
-$sql = sprintf($sql_tpl, implode(PHP_EOL, $when_nodes), implode(PHP_EOL, $when_floors));
+$sql = sprintf(
+  $sql_tpl,
+  implode(PHP_EOL, $when['label']),
+  implode(PHP_EOL, $when['floor'])
+);
 
 $stmt = $db->prepare($sql);
 $stmt->execute([
@@ -221,8 +233,9 @@ $title = sprintf(
 <table>
   <thead>
     <tr>
-      <th>Floor</th>
       <th>Node</th>
+      <th>Floor</th>
+      <th>Orientation</th>
       <th>Earliest</th>
       <th>Latest</th>
       <th>Readings</th>
@@ -244,8 +257,9 @@ $title = sprintf(
     ?>
 
     <tr>
-      <td></td>
       <td role="nb"><?php echo html('%d nodes', $nb_nodes)?></td>
+      <td></td>
+      <td></td>
       <td></td>
       <td></td>
       <td role="nb"><?php echo html('%d total', $nb_readings)?></td>
@@ -269,8 +283,9 @@ $title = sprintf(
       ?>
 
       <tr>
-        <td role="nb"><?php echo html($res['floor']);?></td>
         <td><acronym title="<?php echo html('Node #%s', $res['node'])?>"><?php echo html($res['node_lbl']);?></acronym></td>
+        <td role="nb"><?php echo html($res['floor']);?></td>
+        <td><?php echo html($nodes_cfg[$res['node']]['orientation'])?></td>
         <td role="nb"><?php echo html($earliest->format('H:i:s'))?></td>
         <td role="nb"><?php echo html($latest->format('H:i:s'))?></td>
         <td role="nb"><?php echo html($res['nb_readings'])?></td>
@@ -377,79 +392,59 @@ foreach($health as $node_key => $node_average) {
   );
 }
 
-$datasets = [
+$datasets_left = [
+  'hpa'  => ['label' => 'Barometric [hPa-920]', 'color' => '#c9cbcf'],
+  'temp' => ['label' => 'Temperature [°C]', 'color' => '#ff0000'],
+  'hum'  => ['label' => 'Humidity [%]', 'color' => '#0000ff'],
+  'iaq'  => ['label' => 'IAQ [%]', 'color' => '#96f'],
+];
+$datasets_right = [
   'eco2' => ['label' => 'eCO²', 'color' => '#ff9f40'],
   'voc'  => ['label' => 'VOC',  'color' => '#4bc0c0'],
 ];
 ?>
 
 <?php foreach($health as $node_key => $node_average): ?>
+  <?php $canvas_idx = sprintf('room-%s', $node_key); ?>
   <?php $zindex = 0; ?>
-  <canvas id="<?php echo html('room-%s', $node_key) ?>"></canvas>
+  <?php $datasets = []; ?>
+
+  <canvas id="<?php echo html($canvas_idx) ?>"></canvas>
+
+  <?php
+  foreach($datasets_right as $field => $_ds) {
+    $datasets[] = [
+      'type' => 'line',
+      'label' => $_ds['label'],
+      'data' => array_map('datapoints', array_keys($sensors[$node_key]), array_column($sensors[$node_key], $field)),
+      'borderWidth' => 1,
+      'weight' => 1,
+      'order' => $zindex--,
+      'yAxisID' => 'right',
+      'borderColor' => $_ds['color'],
+      'backgroundColor' => $_ds['color'],
+      'spanGaps' => 'false',
+    ];
+  }
+  foreach($datasets_left as $field => $_ds) {
+    $datasets[] = [
+      'type' => 'line',
+      'label' => $_ds['label'],
+      'data' => array_map('datapoints', array_keys($sensors[$node_key]), array_column($sensors[$node_key], $field)),
+      'borderWidth' => 1,
+      'order' => $zindex--,
+      'yAxisID' => 'left',
+      'borderColor' => $_ds['color'],
+      'backgroundColor' => $_ds['color'],
+      'spanGaps' => 'false',
+    ];
+  }
+  ?>
 
   <script>
-    new Chart(document.getElementById(<?php echo json_encode(sprintf('room-%s', $node_key)) ?>), {
+    new Chart(document.getElementById(<?php echo json_encode($canvas_idx) ?>), {
       data: {
-        datasets: [
-          <?php foreach($datasets as $field => $ds): ?>
-          {
-            type: 'line',
-            label: <?php echo json_encode($ds['label']) ?>,
-            data: <?php echo json_encode(array_map('datapoints', $field, array_keys($sensors[$node_key]), $sensors[$node_key])); ?>,
-            borderWidth: 1,
-            weight: 1,
-            order: <?php echo json_encode($zindex--) ?>,
-            yAxisID: 'right',
-            borderColor: <?php echo json_encode($ds['color']) ?>,
-            backgroundColor: <?php echo json_encode($ds['color']) ?>,
-            spanGaps: false
-          },
-          <?php endforeach; ?>
-          {
-            type: 'line',
-            label: 'Barometric [hPa-920]',
-            data: <?php echo json_encode(array_map('datapoints', 'hpa', array_keys($sensors[$node_key]), $sensors[$node_key])); ?>,
-            borderWidth: 1,
-            order: <?php echo json_encode($zindex--) ?>,
-            yAxisID: 'left',
-            borderColor: '#c9cbcf',
-            backgroundColor: '#c9cbcf',
-            spanGaps: false
-          },
-          {
-            type: 'line',
-            label: 'Temperature [°C]',
-            data: <?php echo json_encode(array_map('datapoints', 'temp', array_keys($sensors[$node_key]), $sensors[$node_key])); ?>,
-            borderWidth: 1,
-            order: <?php echo json_encode($zindex--) ?>,
-            yAxisID: 'left',
-            borderColor: '#ff0000',
-            backgroundColor: '#ff0000',
-            spanGaps: false
-          },
-          {
-            type: 'line',
-            label: 'Humidity [%]',
-            data: <?php echo json_encode(array_map('datapoints', 'hum', array_keys($sensors[$node_key]), $sensors[$node_key])); ?>,
-            borderWidth: 1,
-            order: <?php echo json_encode($zindex--) ?>,
-            yAxisID: 'left',
-            borderColor: '#0000ff',
-            backgroundColor: '#0000ff',
-            spanGaps: false
-          },
-          {
-            type: 'line',
-            label: 'IAQ [%]',
-            data: <?php echo json_encode(array_map('datapoints', 'iaq', array_keys($sensors[$node_key]), $sensors[$node_key])); ?>,
-            borderWidth: 1,
-            order: <?php echo json_encode($zindex--) ?>,
-            yAxisID: 'left',
-            borderColor: '#96f',
-            backgroundColor: '#96f',
-            spanGaps: false
-          }
-        ]
+        datasets: <?php echo json_encode($datasets); ?>
       },
       options: {
         plugins: {

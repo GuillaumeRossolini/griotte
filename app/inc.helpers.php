@@ -3,7 +3,7 @@
 /**
  * Computes a database path from a date
  */
-function db_filename(DateTime $dt) {
+function db_filename(DateTimeInterface $dt) {
   return sprintf(
     '%s/daily/%d/%s/%s.sq3',
     GRIOTTE_DB_PATH,
@@ -16,10 +16,10 @@ function db_filename(DateTime $dt) {
 /**
  * Reformat tuples from the database in a format suitable for a timescale graph
  */
-function datapoints(string $field, string $timestamp, array $row) {
+function datapoints(string $timestamp, string|numeric $value) {
   return [
     'x' => $timestamp,
-    'y' => $row[$field] ?: null,
+    'y' => $value ?: null,
   ];
 }
 
