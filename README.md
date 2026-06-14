@@ -383,7 +383,7 @@ PAUSE
 * batch the ESP32>RPI0 HTTP requests to better scale the number of nodes in the mesh w/r/t HTTP round-trip times
 * implement gradual backoff for the HTTP messages to the RPI0 in case the web server goes down, so that the mesh doesn't destabilize as a result of the increased delays and the ESP32 being busy (also see the first bullet point)
 * health of the node sent to a dedicated endpoint
-* estimate how much time the ESP32 spends on HTTP versus listening to the mesh
+* estimate how much time the ESP32 spends on HTTP versus listening to the mesh, send it as part of the health payload
 * upgrade ArduinoJson lib
 * upgrade BSEC lib
 * Home Assistant compatibility
