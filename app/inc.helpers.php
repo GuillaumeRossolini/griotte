@@ -1,6 +1,29 @@
 <?php
 
 /**
+ * Computes a database path from a date
+ */
+function db_filename(DateTime $dt) {
+  return sprintf(
+    '%s/daily/%d/%s/%s.sq3',
+    GRIOTTE_DB_PATH,
+    $dt->format('Y'),
+    $dt->format('m-F'),
+    $dt->format('Y-m-d')
+  );
+}
+
+/**
+ * Reformat tuples from the database in a format suitable for a timescale graph
+ */
+function datapoints(string $field, string $timestamp, array $row) {
+  return [
+    'x' => $timestamp,
+    'y' => $row[$field] ?: null,
+  ];
+}
+
+/**
  * Ends the script
  */
 function finish(int $response_code, string $reponse_body='ok'): void {

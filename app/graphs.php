@@ -85,7 +85,7 @@ unset($date_filter, $match);
 </script>
 
 <?php
-$db_filename = sprintf('%s/daily/%d/%s/%s.sq3', GRIOTTE_DB_PATH, $start_local->format('Y'), $start_local->format('m-F'), $start_local->format('Y-m-d'));
+$db_filename = db_filename($start_local);
 if(!file_exists($db_filename)) {
   syslog(LOG_ERR, sprintf('DB file does not exist: %s', $db_filename));
   echo html('DB file does not exist: %s', basename($db_filename));
@@ -193,11 +193,6 @@ if(!$labels) {
   ?><h1><?php echo html('No data for %s', $start_local->format('Y-m-d')) ?></h1><?php
   return;
 }
-
-$datasets = [
-  'eco2' => ['label' => 'eCO²', 'color' => '#ff9f40'],
-  'voc'  => ['label' => 'VOC',  'color' => '#4bc0c0'],
-];
 
 $earliest_times = array_filter(array_column($health, 'earliest_reading'));
 natsort($earliest_times);
@@ -378,6 +373,11 @@ foreach($health as $node_key => $node_average) {
     $latest->format('H:i:s'),
   );
 }
+
+$datasets = [
+  'eco2' => ['label' => 'eCO²', 'color' => '#ff9f40'],
+  'voc'  => ['label' => 'VOC',  'color' => '#4bc0c0'],
+];
 ?>
 
 <?php foreach($health as $node_key => $node_average): ?>
@@ -392,14 +392,7 @@ foreach($health as $node_key => $node_average) {
           {
             type: 'line',
             label: <?php echo json_encode($ds['label']) ?>,
-            data: <?php
-              echo json_encode(array_map(function(string $ts, array $row) use ($field, $tz_local) {
-                return [
-                  'x' => $ts,
-                  'y' => $row[$field] ?: null,
-                ];
-              }, array_keys($sensors[$node_key]), $sensors[$node_key]));
-            ?>,
+            data: <?php echo json_encode(array_map('datapoints', $field, array_keys($sensors[$node_key]), $sensors[$node_key])); ?>,
             borderWidth: 1,
             weight: 1,
             order: <?php echo json_encode($zindex--) ?>,
@@ -412,14 +405,7 @@ foreach($health as $node_key => $node_average) {
           {
             type: 'line',
             label: 'Barometric [hPa-920]',
-            data: <?php
-              echo json_encode(array_map(function(string $ts, array $row) use ($tz_local) {
-                return [
-                  'x' => $ts,
-                  'y' => $row['hpa'] ?: null,
-                ];
-              }, array_keys($sensors[$node_key]), $sensors[$node_key]));
-            ?>,
+            data: <?php echo json_encode(array_map('datapoints', 'hpa', array_keys($sensors[$node_key]), $sensors[$node_key])); ?>,
             borderWidth: 1,
             order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'left',
@@ -430,14 +416,7 @@ foreach($health as $node_key => $node_average) {
           {
             type: 'line',
             label: 'Temperature [°C]',
-            data: <?php
-              echo json_encode(array_map(function(string $ts, array $row) use ($tz_local) {
-                return [
-                  'x' => $ts,
-                  'y' => $row['temp'] ?: null,
-                ];
-              }, array_keys($sensors[$node_key]), $sensors[$node_key]));
-            ?>,
+            data: <?php echo json_encode(array_map('datapoints', 'temp', array_keys($sensors[$node_key]), $sensors[$node_key])); ?>,
             borderWidth: 1,
             order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'left',
@@ -448,14 +427,7 @@ foreach($health as $node_key => $node_average) {
           {
             type: 'line',
             label: 'Humidity [%]',
-            data: <?php
-              echo json_encode(array_map(function(string $ts, array $row) use ($tz_local) {
-                return [
-                  'x' => $ts,
-                  'y' => $row['hum'] ?: null,
-                ];
-              }, array_keys($sensors[$node_key]), $sensors[$node_key]));
-            ?>,
+            data: <?php echo json_encode(array_map('datapoints', 'hum', array_keys($sensors[$node_key]), $sensors[$node_key])); ?>,
             borderWidth: 1,
             order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'left',
@@ -466,14 +438,7 @@ foreach($health as $node_key => $node_average) {
           {
             type: 'line',
             label: 'IAQ [%]',
-            data: <?php
-              echo json_encode(array_map(function(string $ts, array $row) use ($tz_local) {
-                return [
-                  'x' => $ts,
-                  'y' => $row['iaq'] ?: null,
-                ];
-              }, array_keys($sensors[$node_key]), $sensors[$node_key]));
-            ?>,
+            data: <?php echo json_encode(array_map('datapoints', 'iaq', array_keys($sensors[$node_key]), $sensors[$node_key])); ?>,
             borderWidth: 1,
             order: <?php echo json_encode($zindex--) ?>,
             yAxisID: 'left',
