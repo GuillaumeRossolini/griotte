@@ -399,8 +399,8 @@ $datasets_left = [
   'iaq'  => ['label' => 'IAQ [%]', 'color' => '#96f'],
 ];
 $datasets_right = [
-  'eco2' => ['label' => 'eCO²', 'color' => '#ff9f40'],
-  'voc'  => ['label' => 'VOC',  'color' => '#4bc0c0'],
+  'eco2' => ['label' => 'eCO² [ppm]', 'color' => '#ff9f40'],
+  'voc'  => ['label' => 'VOC [ppm]',  'color' => '#4bc0c0'],
 ];
 ?>
 
