@@ -11,7 +11,7 @@ date_default_timezone_set($config['general']['timezone']);
 ob_start('ob_gzhandler');
 
 $date_filter = empty($_GET['d']) ? date('Y-m-d') : $_GET['d'];
-if(!preg_match('~^(\d{4})-(\d{2})-(\d{2})$~', $date_filter, $match) or !checkdate($match[2], $match[3], $match[1])) {
+if(!preg_match('~^(\d{4})-(\d{2})-(\d{2})$~', $date_filter, $_match) or !checkdate($_match[2], $_match[3], $_match[1])) {
   throw new Exception('Invalid date format');
 }
 
@@ -28,7 +28,6 @@ $end_utc = $start_local
   ->sub(new DateInterval('PT1S'))
   ->setTimezone($tz_utc);
 
-unset($date_filter, $match);
 
 $nodes_cfg = [];
 foreach($config['nodes'] as $_key => $_val) {
@@ -38,6 +37,7 @@ foreach($config['nodes'] as $_key => $_val) {
   list(, $_node, $_idx) = $_match;
   $nodes_cfg[$_node][$_idx] = $_val;
 }
+unset($date_filter, $_match, $_key, $_val, $_node, $_idx);
 ?>
 <!doctype html>
 <html lang="en-US">
