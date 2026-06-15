@@ -2,7 +2,7 @@ version: "3"
 
 # docker build -t griotte:v2.3.3 .
 # docker service rm griotte_graphs griotte_incoming griotte_proxy
-# docker stack deploy -c docker-compose.yml --prune --detach=false griotte
+# docker stack deploy -c docker-compose.rpi0.yml --prune --detach=false griotte
 
 services:
 
@@ -21,8 +21,10 @@ services:
       replicas: 2
       endpoint_mode: vip
       resources:
+        reservations:
+          cpus: '0.05'
         limits:
-          cpus: '0.25'
+          cpus: '0.10'
           memory: 50M
 
   incoming:
@@ -47,9 +49,11 @@ services:
       replicas: 1
       endpoint_mode: dnsrr
       resources:
+        reservations:
+          cpus: '0.10'
         limits:
-          cpus: '0.25'
-          memory: 100M
+          cpus: '0.50'
+          memory: 50M
 
   graphs:
     image: "griotte:v2.3.3"
@@ -71,4 +75,4 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 200M
+          memory: 50M

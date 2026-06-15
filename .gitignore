@@ -3,5 +3,6 @@ ESP32-BME680/griotte_creds_*.h
 !ESP32-BME680/griotte_creds_defaults.h
 docker-compose.*.yml
 !docker-compose.wsl.yml
+!docker-compose.rpi0.yml
 app/config.*.ini
 volumes
