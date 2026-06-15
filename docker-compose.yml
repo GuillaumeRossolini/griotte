@@ -31,6 +31,7 @@ services:
       - /tmp
       - /var/www/run
     volumes:
+      - ./php-fpm/php.ini:/usr/local/etc/php/conf.d/griot.ini:ro,volume-nocopy
       - ./app/config.griot.ini:/var/www/app/config.ini:ro,volume-nocopy
       - ./volumes/db:/var/www/db
     environment:
@@ -55,6 +56,7 @@ services:
     tmpfs:
       - /tmp
     volumes:
+      - ./php-fpm/php.ini:/usr/local/etc/php/conf.d/griot.ini:ro,volume-nocopy
       - ./app/config.griot.ini:/var/www/app/config.ini:ro,volume-nocopy
       - ./volumes/db:/var/www/db:ro,volume-nocopy
     environment:

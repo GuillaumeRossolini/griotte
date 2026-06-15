@@ -6,11 +6,11 @@ RUN apt update \
 
 ADD php-fpm/php.ini /usr/local/etc/php/conf.d/griot.ini
 ADD php-fpm/fpm-griot.conf /tmp/fpm-griot.conf
-RUN cat /usr/local/etc/php-fpm.d/*.conf /tmp/fpm-*.conf > /tmp/php-fpm.conf
 
-RUN find /usr/local/etc/php-fpm.d -type f -delete \
+RUN cat /usr/local/etc/php-fpm.d/*.conf /tmp/fpm-*.conf > /tmp/php-fpm.conf \
+    && find /usr/local/etc/php-fpm.d -type f -delete \
     && cp /tmp/php-fpm.conf /usr/local/etc/php-fpm.d/griot.conf \
-    && find /tmp -type f -name "*.conf" -delete
+    && find /tmp -type f -delete
 
 WORKDIR /var/www
 
