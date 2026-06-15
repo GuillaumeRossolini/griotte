@@ -10,7 +10,7 @@ register_shutdown_function(function() {
 
 
 if(!empty($_POST)) {
-  require 'incoming.php';
+  require 'main.incoming.php';
   exit;
 }
 
@@ -24,4 +24,4 @@ if(isset($_GET['phpi'])) {
   exit;
 }
 
-require 'graphs.php';
+require 'main.graphs.php';
