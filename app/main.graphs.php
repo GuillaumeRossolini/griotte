@@ -31,7 +31,7 @@ $end_utc = $start_local
 
 $nodes_cfg = [];
 foreach($config['nodes'] as $_key => $_val) {
-  if(!preg_match('~^esp\.(\d+)\.(label|floor|orientation)$~', $_key, $_match)) {
+  if(!preg_match('~^esp\.(\d+)\.(label|floor|comments)$~', $_key, $_match)) {
     continue;
   }
   list(, $_node, $_idx) = $_match;
@@ -226,7 +226,7 @@ $title = sprintf(
     <tr>
       <th>Node</th>
       <th>Floor</th>
-      <th>Orientation</th>
+      <th>Comments</th>
       <th>Earliest</th>
       <th>Latest</th>
       <th>Readings</th>
@@ -276,7 +276,7 @@ $title = sprintf(
       <tr>
         <td><acronym title="<?php echo html('Node #%s', $res['node'])?>"><?php echo html($res['node_lbl']);?></acronym></td>
         <td role="nb"><?php echo html($res['floor']);?></td>
-        <td><?php echo html($nodes_cfg[$res['node']]['orientation'])?></td>
+        <td><?php echo html($nodes_cfg[$res['node']]['comments'])?></td>
         <td role="nb"><?php echo html($earliest->format('H:i:s'))?></td>
         <td role="nb"><?php echo html($latest->format('H:i:s'))?></td>
         <td role="nb"><?php echo html($res['nb_readings'])?></td>
