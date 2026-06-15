@@ -396,7 +396,7 @@ $datasets_right = [
 ?>
 
 <?php foreach($health as $node_key => $node_average): ?>
-  <?php $canvas_idx = sprintf('room-%s', $node_key); ?>
+  <?php $canvas_idx = sprintf('room_%s', $node_key); ?>
   <?php $zindex = 0; ?>
   <?php $datasets = []; ?>
 
@@ -433,7 +433,7 @@ $datasets_right = [
   ?>
 
   <script>
-    new Chart(document.getElementById(<?php echo json_encode($canvas_idx) ?>), {
+    const <?php echo $canvas_idx ?> = new Chart(document.getElementById(<?php echo json_encode($canvas_idx) ?>), {
       data: {
         datasets: <?php echo json_encode($datasets); ?>
       },
@@ -447,6 +447,11 @@ $datasets_right = [
         scales: {
           x: {
             type: 'time',
+            adapters: {
+              date: {
+                zone: <?php echo json_encode(date_default_timezone_get()); ?>
+              }
+            },
             time: {
               tooltipFormat: 'HH:mm:ss',
               displayFormats: {
