@@ -1,5 +1,5 @@
-FROM php:8-fpm-trixie@sha256:4528adc6695b76250c0d2290c52b663d1b5c8e7d4df2a7b86af214524f549c5c
-# PHP 8.5.6 (built: May 19 2026 23:08:03) (NTS)
+FROM php:8-fpm-trixie@sha256:a16de52d0ebd4b5f49dc811010d1437f6c70c6c142b75175ac2a94f2d5db9b4f
+# PHP 8.5.7 (built: Jun 11 2026 00:25:28) (NTS)
 
 RUN apt update \
     && apt install -y sqlite3 vim nano
