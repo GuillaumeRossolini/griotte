@@ -396,7 +396,7 @@ $datasets_right = [
 ?>
 
 <?php foreach($health as $node_key => $node_average): ?>
-  <?php $canvas_idx = sprintf('room_%s', $node_key); ?>
+  <?php $canvas_idx = sprintf('room_%s', md5($node_key)); ?>
   <?php $zindex = 0; ?>
   <?php $datasets = []; ?>
 
