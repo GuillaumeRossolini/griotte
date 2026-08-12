@@ -2,7 +2,7 @@
 #include "painlessMesh.h"
 
 #define HAS_GRIOTTE_BUILD_ID
-const char GRIOTTE_BUILD_ID[] = "v2.3.1";
+const char GRIOTTE_BUILD_ID[] = "v2.3.5";
 
 /*
 # iaqSensor.staticIaq
