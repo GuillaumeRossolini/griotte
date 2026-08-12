@@ -15,8 +15,33 @@ goto selftest;
  */
 selftest:
 
+if(empty($_SERVER['HTTP_USER_AGENT'])) {
+  trace(LOG_ERR, 'Missing the User-Agent header: %s', json_encode($_SERVER));
+  http(400, 'ko');
+  exit;
+}
+
+$regexp = sprintf('~(%s)/(\d+)~', preg_quote(GRIOTTE_LABEL));
+if(!preg_match($regexp, $_SERVER['HTTP_USER_AGENT'], $griotte_agent)) {
+  trace(LOG_ERR, 'User-Agent "%s" does not match pattern: %s', $_SERVER['HTTP_USER_AGENT'], $regexp);
+  http(400, 'ko');
+  exit;
+}
+
+dbg(__FILE__, __LINE__, 'identified griotte %s', $griotte_agent[0]);
+$agent_name = null;
+$griotte_nb = null;
+list(, $agent_name, $griotte_nb) = $griotte_agent;
+$griotte_nb = floatval($griotte_nb);
+
 if(empty($_POST['struct'])) {
-  trace(LOG_ERR, 'Missing "struct" field in the request body: %s', json_encode(array_keys($_POST)) ?: 'n/a');
+  trace(
+    LOG_ERR,
+    'Missing "struct" field from #%d: %s',
+    $griotte_nb,
+    json_encode(array_keys($_POST)) ?: 'n/a'
+  );
+
   http(400, 'ko');
   exit;
 }
@@ -24,7 +49,8 @@ if(empty($_POST['struct'])) {
 if(!in_array($_POST['struct'], GRIOTTE_STRUCT_ALLOWLIST, true)) {
   trace(
     LOG_ERR,
-    'Payload was %s but can only be one of (%d): %s',
+    'Payload from #%d was %s but can only be one of (%d): %s',
+    $griotte_nb,
     json_encode($_POST['struct']),
     count(GRIOTTE_STRUCT_ALLOWLIST),
     implode(', ', GRIOTTE_STRUCT_ALLOWLIST)
@@ -36,32 +62,24 @@ if(!in_array($_POST['struct'], GRIOTTE_STRUCT_ALLOWLIST, true)) {
 
 $payload_struct = $_POST['struct']; // this appears both as a value and as a field
 if(!array_key_exists($payload_struct, $_POST)) {
-  trace(LOG_ERR, 'Missing "%s" field in the request body: %s', $payload_struct, json_encode(array_keys($_POST)) ?: 'n/a');
+  trace(LOG_ERR, 'Missing "%s" field from #%d: %s', $payload_struct, $griotte_nb, json_encode(array_keys($_POST)) ?: 'n/a');
   http(400, 'ko');
   exit;
 }
 
 $payload = json_decode($_POST[$payload_struct], true);
 if(false === $payload) {
-  trace(LOG_ERR, 'Input data was not JSON: %s', json_encode($_POST[$payload_struct]));
+  trace(LOG_ERR, 'Input data from #% was not JSON: %s', $griotte_nb, json_encode($_POST[$payload_struct]));
   http(400, 'ko');
   exit;
 }
 
-if(empty($_SERVER['HTTP_USER_AGENT'])) {
-  trace(LOG_ERR, 'Missing the User-Agent header: %s', json_encode($_SERVER));
+if(empty($payload['msg'])) {
+  trace(LOG_ERR, 'Empty payload msg from #%: %s', $griotte_nb, json_encode($payload));
   http(400, 'ko');
   exit;
 }
 
-$regexp = sprintf('~(%s)/(\d+)~', preg_quote(GRIOTTE_LABEL));
-if(!preg_match($regexp, $_SERVER['HTTP_USER_AGENT'], $griotte_agent)) {
-  trace(LOG_ERR, 'Incorrect User-Agent header: %s (%s)', $_SERVER['HTTP_USER_AGENT'], $regexp);
-  http(400, 'ko');
-  exit;
-}
-
-dbg(__FILE__, __LINE__, 'identified griotte %s', $griotte_agent[0]);
 foreach(['GRIOTTE_RUN_PATH', 'GRIOTTE_DB_PATH'] as $_constant) {
   if(!file_exists(constant($_constant))) {
     trace(LOG_ERR, 'Folder %s not found: %s', $_constant, constant($_constant));
@@ -89,11 +107,6 @@ $gateway_signal = null;
 if(!empty($_POST['signal'])) {
   $gateway_signal = (int) $_POST['signal'];
 }
-
-$agent_name = null;
-$griotte_nb = null;
-list(, $agent_name, $griotte_nb) = $griotte_agent;
-$griotte_nb = floatval($griotte_nb);
 
 define('GRIOTTE_SERIAL_NB', $griotte_nb);
 define('GRIOTTE_PAYLOAD_STRUCT', $payload_struct);
