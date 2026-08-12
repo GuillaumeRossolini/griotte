@@ -174,7 +174,7 @@ In case I was mistaken with my short list, here are all the dependencies that I 
 |Painless Mesh|v1.5.7|Coopdis, Scotty Franzyshen, Edwin van Leeuwen, Germán Martín, Maximillian Schwartz, Doanh Doanh|https://gitlab.com/painlessMesh/painlessMesh|
 |PubSubClient|v2.8|Nick O'Leary|https://pubsubclient.knolleary.net|
 |RTCLib|v2.1.4|Adafruit|https://github.com/adafruit/RTClib|
-|SdFat|v2.3.0|Bill Greirman|https://github.com/adafruit/RTClib|
+|SdFat|v2.3.0|Bill Greirman|https://github.com/greiman/SdFat|
 |TaskScheduler|v4.0.8|Anatoli Arkhipenko|https://github.com/arkhipenko/TaskScheduler|
 |base64|v1.3.0|Densaugeo|https://github.com/Densaugeo/base64_arduino|
 |bsec2|v1.7.2502|Bosch Sensortech|https://github.com/boschsensortec/Bosch-BSEC2-Library|
