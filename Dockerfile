@@ -1,4 +1,4 @@
-FROM php:8-fpm-trixie@sha256:a16de52d0ebd4b5f49dc811010d1437f6c70c6c142b75175ac2a94f2d5db9b4f
+FROM php:8-fpm-trixie@sha256:32ef9f35b567a741f24c5d2c3312f803fe6c9e34b7db46212f95fce675e1d13f
 # PHP 8.5.7 (built: Jun 11 2026 00:25:28) (NTS)
 
 RUN apt update \
