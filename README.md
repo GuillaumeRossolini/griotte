@@ -138,19 +138,18 @@ Which translates to the following URLs, separated by a comma:
 The Board Managers are what allow you to choose your ESP8266 and ESP32 devices in Arduino IDE so that you can interact with them: flash, debug _etc._ Flashing means writing the program to the device, and debugging (to me) mostly means having logs show up on the serial console.
 
 The following are my installed Board Manager versions:
-- ESP32 v3.3.8 by Espressif systems
+- ESP32 v3.3.11 by Espressif systems
 - ESP8266 v3.1.2 by ESP8266 community
 
 My best guess at the actual libraries I was required to install were (some are installed automatically by Arduino IDE from the Includes, others aren't):
 
-|Name|Version|Authors|URL|
-|-|-|-|-|
-|Painless Mesh|v1.5.7|Coopdis, Scotty Franzyshen, Edwin van Leeuwen, Germán Martín, Maximillian Schwartz, Doanh Doanh|https://gitlab.com/painlessMesh/painlessMesh|
-|ArduinoJson|v6.21.6|Benoit Blanchon|https://arduinojson.org/|
-|AsyncTCP|v3.4.10|ESP32Async|https://github.com/ESP32Async/AsyncTCP|
-|ESPAsyncTCP|v1.2.4|dvarrel|https://github.com/dvarrel/ESPAsyncTCP|
-
-(^ these last two are one for ESP32, the other for ESP8266)
+|Name|Version|Targets|Authors|URL|
+|-|-|-|-|-|
+|Painless Mesh|v1.5.7|ESP32, ESP8266|Coopdis, Scotty Franzyshen, Edwin van Leeuwen, Germán Martín, Maximillian Schwartz, Doanh Doanh|https://gitlab.com/painlessMesh/painlessMesh|
+|ArduinoJson|v6.21.6|ESP32, ESP8266|Benoit Blanchon|https://arduinojson.org/|
+|AsyncTCP|v3.5.0|ESP32|ESP32Async|https://github.com/ESP32Async/AsyncTCP|
+|ESPAsyncTCP|v1.2.4|ESP8266|dvarrel|https://github.com/dvarrel/ESPAsyncTCP|
+|base64|v1.3.0|ESP32, ESP8266|Densaugeo|https://github.com/Densaugeo/base64_arduino|
 
 The ArduinoJson library had to be held back even though there is a newer major version available.
 
@@ -162,13 +161,13 @@ For what it's worth, and in case I was mistaken with my short list, here are all
 |Adafruit_BME680|v2.0.6|Adafruit|https://github.com/adafruit/Adafruit_BME680|
 |Adafruit_BusIO|v1.17.4|Adafruit|https://github.com/adafruit/Adafruit_BusIO|
 |Adafruit-GFX-Library|v1.12.6|Adafruit|https://github.com/adafruit/Adafruit-GFX-Library|
-|Adafruit SSD1306|v2.5.16|Adafruit|https://github.com/adafruit/Adafruit_SSD1306|
+|Adafruit SSD1306|v2.5.17|Adafruit|https://github.com/adafruit/Adafruit_SSD1306|
 |Adafruit Unified Sensor|v1.1.15|Adafruit|https://github.com/adafruit/Adafruit_Sensor|
 |ArduinoJson|v6.21.6|Benoit Blanchon|https://arduinojson.org|
-|AsyncTCP|v3.4.10|ESP32Async|https://github.com/ESP32Async/AsyncTCP|
+|AsyncTCP|v3.5.0|ESP32Async|https://github.com/ESP32Async/AsyncTCP|
 |BME68x Sensor library|v1.3.40408|Bosch Sensortech|[1]|
 |BSEC Softare Library|v1.6.1480|Bosch Sensortech|https://www.bosch-sensortec.com/software-tools/software/bsec/|
-|ESP ASync WebServer|v3.11.0|ESP32Async|https://github.com/ESP32Async/ESPAsyncWebServer|
+|ESP ASync WebServer|v3.12.0|ESP32Async|https://github.com/ESP32Async/ESPAsyncWebServer|
 |ESPAsyncTCP|v1.2.4|dvarrel|https://github.com/dvarrel/ESPAsyncTCP|
 |HttpClient|v2.2.0|Adrian McEwen |https://github.com/amcewen/HttpClient|
 |Painless Mesh|v1.5.7|Coopdis, Scotty Franzyshen, Edwin van Leeuwen, Germán Martín, Maximillian Schwartz, Doanh Doanh|https://gitlab.com/painlessMesh/painlessMesh|
