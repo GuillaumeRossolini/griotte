@@ -143,17 +143,18 @@ The following are my installed Board Manager versions:
 
 My best guess at the actual libraries I was required to install were (some are installed automatically by Arduino IDE from the Includes, others aren't):
 
-|Name|Version|Targets|Authors|URL|
-|-|-|-|-|-|
-|Painless Mesh|v1.5.7|ESP32, ESP8266|Coopdis, Scotty Franzyshen, Edwin van Leeuwen, Germán Martín, Maximillian Schwartz, Doanh Doanh|https://gitlab.com/painlessMesh/painlessMesh|
-|ArduinoJson|v6.21.6|ESP32, ESP8266|Benoit Blanchon|https://arduinojson.org/|
-|AsyncTCP|v3.5.0|ESP32|ESP32Async|https://github.com/ESP32Async/AsyncTCP|
-|ESPAsyncTCP|v1.2.4|ESP8266|dvarrel|https://github.com/dvarrel/ESPAsyncTCP|
-|base64|v1.3.0|ESP32, ESP8266|Densaugeo|https://github.com/Densaugeo/base64_arduino|
+|Name|Version|Targets|URL|
+|-|-|-|-|
+|Painless Mesh|v1.5.7|ESP32, ESP8266|https://gitlab.com/painlessMesh/painlessMesh|
+|ArduinoJson|v6.21.6|ESP32|https://arduinojson.org/|
+|AsyncTCP|v3.5.0|ESP32|https://github.com/ESP32Async/AsyncTCP|
+|ESPAsyncTCP|v1.2.4|ESP8266|https://github.com/dvarrel/ESPAsyncTCP|
+|HttpClient|v2.2.0|ESP32|https://github.com/amcewen/HttpClient|
+|base64|v1.3.0|ESP32|https://github.com/Densaugeo/base64_arduino|
 
 The ArduinoJson library had to be held back even though there is a newer major version available.
 
-For what it's worth, and in case I was mistaken with my short list, here are all the dependencies that I have on my computer:
+In case I was mistaken with my short list, here are all the dependencies that I have on my computer:
 
 |Name|Version|Authors|URL|
 |-|-|-|-|
@@ -165,20 +166,18 @@ For what it's worth, and in case I was mistaken with my short list, here are all
 |Adafruit Unified Sensor|v1.1.15|Adafruit|https://github.com/adafruit/Adafruit_Sensor|
 |ArduinoJson|v6.21.6|Benoit Blanchon|https://arduinojson.org|
 |AsyncTCP|v3.5.0|ESP32Async|https://github.com/ESP32Async/AsyncTCP|
-|BME68x Sensor library|v1.3.40408|Bosch Sensortech|[1]|
-|BSEC Softare Library|v1.6.1480|Bosch Sensortech|https://www.bosch-sensortec.com/software-tools/software/bsec/|
+|BME68x Sensor library|v1.3.40408|Bosch Sensortech|https://github.com/BoschSensortec/Bosch-BME68x-Library|
+|BSEC Softare Library|v1.6.1480|Bosch Sensortech|https://github.com/BoschSensortec/BSEC-Arduino-library|
 |ESP ASync WebServer|v3.12.0|ESP32Async|https://github.com/ESP32Async/ESPAsyncWebServer|
 |ESPAsyncTCP|v1.2.4|dvarrel|https://github.com/dvarrel/ESPAsyncTCP|
-|HttpClient|v2.2.0|Adrian McEwen |https://github.com/amcewen/HttpClient|
+|HttpClient|v2.2.0|Adrian McEwen|https://github.com/amcewen/HttpClient|
 |Painless Mesh|v1.5.7|Coopdis, Scotty Franzyshen, Edwin van Leeuwen, Germán Martín, Maximillian Schwartz, Doanh Doanh|https://gitlab.com/painlessMesh/painlessMesh|
 |PubSubClient|v2.8|Nick O'Leary|https://pubsubclient.knolleary.net|
 |RTCLib|v2.1.4|Adafruit|https://github.com/adafruit/RTClib|
 |SdFat|v2.3.0|Bill Greirman|https://github.com/adafruit/RTClib|
 |TaskScheduler|v4.0.8|Anatoli Arkhipenko|https://github.com/arkhipenko/TaskScheduler|
 |base64|v1.3.0|Densaugeo|https://github.com/Densaugeo/base64_arduino|
-|bsec2|v1.7.2502|Bosch Sensortech|[1]|
-
-[1] the official URL seems to be dead so here's another, and good luck! Or maybe someone archived/forked it on their account, or there is a replacement... https://github.com/BoschSensortec/Bosch-BME68x-Library
+|bsec2|v1.7.2502|Bosch Sensortech|https://github.com/boschsensortec/Bosch-BSEC2-Library|
 
 
 ## C- Flashing a micro controller
