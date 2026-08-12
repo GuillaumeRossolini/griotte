@@ -188,13 +188,13 @@ $stmt->execute([
 ]);
 
 $health = [];
-$labels = [];
+$comments = [];
 foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $res) {
   $health[$res['node_lbl']] = $res;
-  $labels[] = sprintf('%s@F%d (%d)', $res['node_lbl'], $res['floor'], $res['nb_readings']);
+  $comments[$res['node_lbl']] = isset($nodes_cfg[$res['node']]['comments']) ? trim($nodes_cfg[$res['node']]['comments']) : null;
 }
 
-if(!$labels) {
+if(!$health) {
   syslog(LOG_ERR, sprintf('No data for %s to %s in %s', $start_utc->format('Y-m-d H:i:s'), $end_utc->format('Y-m-d H:i:s'), $db_filename));
   ?><h1><?php echo html('No data for %s', $start_local->format('Y-m-d')) ?></h1><?php
   return;
@@ -217,6 +217,10 @@ $title = sprintf(
   $latest->format('H:i:s')
 );
 
+$nb_nodes = count(array_column($health, 'node'));
+$nb_reboots = array_sum(array_column($health, 'nb_reboots'));
+$nb_readings = array_sum(array_column($health, 'nb_readings'));
+$nb_comments = count(array_filter($comments));
 ?>
 
 <h1><?php echo html($title) ?></h1>
@@ -226,7 +230,9 @@ $title = sprintf(
     <tr>
       <th>Node</th>
       <th>Floor</th>
-      <th>Comments</th>
+      <?php if($nb_comments): ?>
+        <th>Comments</th>
+      <?php endif; ?>
       <th>Earliest</th>
       <th>Latest</th>
       <th>Readings</th>
@@ -241,16 +247,12 @@ $title = sprintf(
   </thead>
 
   <tfoot>
-    <?php
-    $nb_nodes = count(array_column($health, 'node'));
-    $nb_reboots = array_sum(array_column($health, 'nb_reboots'));
-    $nb_readings = array_sum(array_column($health, 'nb_readings'));
-    ?>
-
     <tr>
       <td role="nb"><?php echo html('%d nodes', $nb_nodes)?></td>
       <td></td>
-      <td></td>
+      <?php if($nb_comments): ?>
+        <td></td>
+      <?php endif; ?>
       <td></td>
       <td></td>
       <td role="nb"><?php echo html('%d total', $nb_readings)?></td>
@@ -276,7 +278,9 @@ $title = sprintf(
       <tr>
         <td><acronym title="<?php echo html('Node #%s', $res['node'])?>"><?php echo html($res['node_lbl']);?></acronym></td>
         <td role="nb"><?php echo html($res['floor']);?></td>
-        <td><?php echo html($nodes_cfg[$res['node']]['comments'] ?: '')?></td>
+        <?php if($nb_comments): ?>
+          <td><?php echo html($nodes_cfg[$res['node']]['comments'] ?: '')?></td>
+        <?php endif; ?>
         <td role="nb"><?php echo html($earliest->format('H:i:s'))?></td>
         <td role="nb"><?php echo html($latest->format('H:i:s'))?></td>
         <td role="nb"><?php echo html($res['nb_readings'])?></td>
@@ -340,7 +344,6 @@ $labels = [];
 $titles = [];
 foreach($health as $node_key => $node_average) {
   $sensors[$node_key] = [];
-  $labels[$node_key] = [];
 
   $stmt->execute([
     $node_average['node'],
