@@ -1,6 +1,6 @@
 version: "3"
 
-# docker build -t griotte:v2.3.7 .
+# docker build -t griotte:v2.3.9 .
 # docker service rm griotte_graphs griotte_incoming griotte_proxy
 # docker stack deploy -c docker-compose.rpi0.yml --prune --detach=false griotte
 # docker stack deploy -c <(yq '.services |= with_entries(select(.key == "proxy"))' docker-compose.rpi0.yml) --detach=false griotte
@@ -31,7 +31,7 @@ services:
           memory: 50M
 
   incoming:
-    image: "griotte:v2.3.7"
+    image: "griotte:v2.3.9"
     tmpfs:
       - /tmp
       - /var/www/run
@@ -59,7 +59,7 @@ services:
           memory: 50M
 
   graphs:
-    image: "griotte:v2.3.7"
+    image: "griotte:v2.3.9"
     tmpfs:
       - /tmp
     volumes:
