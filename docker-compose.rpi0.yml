@@ -3,6 +3,9 @@ version: "3"
 # docker build -t griotte:v2.3.5 .
 # docker service rm griotte_graphs griotte_incoming griotte_proxy
 # docker stack deploy -c docker-compose.rpi0.yml --prune --detach=false griotte
+# docker stack deploy -c <(yq '.services |= with_entries(select(.key == "proxy"))' docker-compose.rpi0.yml) --detach=false griotte
+# docker stack deploy -c <(yq '.services |= with_entries(select(.key == "incoming"))' docker-compose.rpi0.yml) --detach=false griotte
+# docker stack deploy -c <(yq '.services |= with_entries(select(.key == "graphs"))' docker-compose.rpi0.yml) --detach=false griotte
 
 services:
 
@@ -12,10 +15,10 @@ services:
       - "8081:8081"
       - "80:80"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro,volume-nocopy
-      - ./nginx/site-incoming.conf:/etc/nginx/conf.d/site-incoming.conf:ro,volume-nocopy
-      - ./nginx/site-graphs.conf:/etc/nginx/conf.d/site-graphs.conf:ro,volume-nocopy
-      - ./www/statics:/var/www/html/statics:ro,volume-nocopy
+      - /home/pi/griotte/nginx/nginx.conf:/etc/nginx/nginx.conf:ro,volume-nocopy
+      - /home/pi/griotte/nginx/site-incoming.conf:/etc/nginx/conf.d/site-incoming.conf:ro,volume-nocopy
+      - /home/pi/griotte/nginx/site-graphs.conf:/etc/nginx/conf.d/site-graphs.conf:ro,volume-nocopy
+      - /home/pi/griotte/www/statics:/var/www/html/statics:ro,volume-nocopy
     deploy:
       mode: replicated
       replicas: 2
@@ -33,9 +36,9 @@ services:
       - /tmp
       - /var/www/run
     volumes:
-      - ./php-fpm/php.ini:/usr/local/etc/php/conf.d/griot.ini:ro,volume-nocopy
-      - ./app/config.griot.ini:/var/www/app/config.ini:ro,volume-nocopy
-      - ./volumes/db:/var/www/db
+      - /home/pi/griotte/php-fpm/php.ini:/usr/local/etc/php/conf.d/griot.ini:ro,volume-nocopy
+      - /home/pi/griotte/app/config.griot.ini:/var/www/app/config.ini:ro,volume-nocopy
+      - /home/pi/griotte/volumes/db:/var/www/db
     environment:
       GRIOTTE_LABEL: Griotte
       GRIOTTE_ROOT_PATH: /var/www
@@ -60,9 +63,9 @@ services:
     tmpfs:
       - /tmp
     volumes:
-      - ./php-fpm/php.ini:/usr/local/etc/php/conf.d/griot.ini:ro,volume-nocopy
-      - ./app/config.griot.ini:/var/www/app/config.ini:ro,volume-nocopy
-      - ./volumes/db:/var/www/db:ro,volume-nocopy
+      - /home/pi/griotte/php-fpm/php.ini:/usr/local/etc/php/conf.d/griot.ini:ro,volume-nocopy
+      - /home/pi/griotte/app/config.griot.ini:/var/www/app/config.ini:ro,volume-nocopy
+      - /home/pi/griotte/volumes/db:/var/www/db:ro,volume-nocopy
     environment:
       GRIOTTE_LABEL: Griotte
       GRIOTTE_ROOT_PATH: /var/www
