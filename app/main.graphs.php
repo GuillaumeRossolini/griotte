@@ -78,6 +78,32 @@ unset($date_filter, $_match, $_key, $_val, $_node, $_idx);
   td[role="nb"] {
     text-align: right;
   }
+
+  td[palette] {
+    text-shadow: 0 0 1px white;
+    font-weight: bold;
+  }
+
+  td[palette="purple"] {
+    background-color: rgb(168 85 247 / var(--alpha));
+  }
+
+  td[palette="blue"] {
+    background-color: rgb(59 130 246 / var(--alpha));
+  }
+
+  td[palette="red"] {
+    background-color: rgb(239 68 68 / var(--alpha));
+  }
+
+  td[palette="green"] {
+    background-color: rgb(20 184 166 / var(--alpha));
+  }
+
+  td[palette="yellow"] {
+    background-color: rgb(234 179 8 / var(--alpha));
+  }
+
 </style>
 
   </head>
@@ -288,9 +314,15 @@ $nb_comments = count(array_filter($comments));
         <td role="nb"><?php echo html($res['nb_reboots'])?></td>
         <td role="nb"><?php echo html('%d h', $res['uptime_h'])?></td>
         <td role="nb"><?php echo html('%d hPa', floor($res['avg_hpa']))?></td>
-        <td role="nb"><?php echo html('%d %%', round($res['avg_hum'], 2))?></td>
-        <td role="nb"><?php echo html('%d °C', round($res['avg_temp'], 2))?></td>
-        <td role="nb"><?php echo html('%d %%', round($res['avg_iaq'], 2))?></td>
+        <td role="nb" palette="blue"
+          style="<?php echo html('--alpha: %d%%', round($res['avg_hum'], 0))?>"
+          ><?php echo html('%d %%', round($res['avg_hum'], 0))?></td>
+        <td role="nb" palette="red"
+          style="<?php echo html('--alpha: %d%%', round(2*$res['avg_temp'], 0))?>"
+          ><?php echo html('%d °C', round($res['avg_temp'], 0))?></td>
+        <td role="nb" palette="green"
+          style="<?php echo html('--alpha: %d%%', round($res['avg_iaq'], 0))?>"
+          ><?php echo html('%d %%', round($res['avg_iaq'], 0))?></td>
       </tr>
     <?php endforeach; ?>
   </tbody>
@@ -388,24 +420,22 @@ foreach($health as $node_key => $node_average) {
 
 $datasets_left = [
   'hpa'  => ['label' => 'Barometric [hPa-920]', 'color' => '#c9cbcf'],
-  'temp' => ['label' => 'Temperature [°C]', 'color' => '#ff0000'],
-  'hum'  => ['label' => 'Humidity [%]', 'color' => '#0000ff'],
-  'iaq'  => ['label' => 'IAQ [%]', 'color' => '#96f'],
+  'temp' => ['label' => 'Temperature [°C]', 'color' => '#ef4444'],
+  'hum'  => ['label' => 'Humidity [%]', 'color' => '#3b82f6'],
+  'iaq'  => ['label' => 'IAQ [%]', 'color' => '#14b8a6'],
 ];
 $datasets_right = [
-  'eco2' => ['label' => 'eCO² [ppm]', 'color' => '#ff9f40'],
-  'voc'  => ['label' => 'VOC [ppm]',  'color' => '#4bc0c0'],
+  'eco2' => ['label' => 'eCO2 [ppm]', 'color' => '#eab308'],
+  'voc'  => ['label' => 'VOC [ppm]',  'color' => '#a855f7'],
 ];
 ?>
 
 <?php foreach($health as $node_key => $node_average): ?>
-  <?php $canvas_idx = sprintf('room_%s', md5($node_key)); ?>
-  <?php $zindex = 0; ?>
-  <?php $datasets = []; ?>
-
-  <canvas id="<?php echo html($canvas_idx) ?>"></canvas>
-
   <?php
+  $canvas_idx = sprintf('room_%s', md5($node_key));
+  $zindex = 0;
+  $datasets = [];
+
   foreach($datasets_right as $field => $_ds) {
     $datasets[] = [
       'type' => 'line',
@@ -435,12 +465,17 @@ $datasets_right = [
   }
   ?>
 
+  <canvas id="<?php echo html($canvas_idx) ?>"></canvas>
+
   <script>
-    const <?php echo $canvas_idx ?> = new Chart(document.getElementById(<?php echo json_encode($canvas_idx) ?>), {
+    const <?php echo $canvas_idx ?> = document.getElementById(<?php echo json_encode($canvas_idx) ?>);
+
+    new Chart(<?php echo $canvas_idx ?>, {
       data: {
         datasets: <?php echo json_encode($datasets); ?>
       },
       options: {
+        responsive: true,
         plugins: {
           title: {
             display: true,

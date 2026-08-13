@@ -52,3 +52,13 @@ define('GRIOTTE_DEBUG', 'true' === getenv('GRIOTTE_ROOT_PATH'));
 define('GRIOTTE_DAILY_DB_PATH_TPL', '%s/daily/%d/%s/%s.sq3');
 define('GRIOTTE_RUNFILE_BUFFER_PATH_TPL', '%s/%s-buffer.run');
 define('GRIOTTE_RUNFILE_DATA_PATH_TPL', '%s/%s-data-%s.run');
+
+
+/*
+archiving this here for now
+168 85 247  a855f7  purple
+59 130 246  3b82f6  blue
+239 68 68   ef4444  red
+20 184 166  14b8a6  green
+234 179 8   eab308  yellow
+*/
