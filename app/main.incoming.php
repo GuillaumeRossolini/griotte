@@ -75,7 +75,7 @@ if(false === $payload) {
 }
 
 if(empty($payload['msg'])) {
-  trace(LOG_ERR, 'Empty payload msg from #%: %s', $griotte_nb, json_encode($payload));
+  trace(LOG_ERR, 'Empty payload msg from #%d: %s', $griotte_nb, json_encode($payload));
   http(400, 'ko');
   exit;
 }
