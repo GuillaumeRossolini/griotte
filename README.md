@@ -373,7 +373,7 @@ PAUSE
 ## Documentation
 * improve the Docker docs
 * write the Getting Started docs
-** essentially: git clone && docker build && docker stack deploy (see YAML file for details)
+* * essentially: git clone && docker build && docker stack deploy (see YAML file for details)
 * refactor the docs
 
 ## Microprogram
@@ -392,6 +392,7 @@ PAUSE
 * optimize writes on the Raspberry Pi Zero to reduce latency and storage wear (crontab service?)
 * improve default shell handling: aliases and other maintenance utilities when ssh'ing into the rpi etc.
 * find a better solution for the database overlap currently required (because of timezones and small DB files)
+* graphs data table: add MIN, MAX and current values but hidden by default, and radio buttons to switch (?), and how about STDDEV?
 
 ## Hardware
 * battery & solar recharge
