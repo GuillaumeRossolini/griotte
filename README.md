@@ -400,6 +400,7 @@ PAUSE
 
 ## Docker Swarm
 * Building the php-fpm image on Raspberry Pi Zero is possible but the first build took 1474s in my case, and subsequent builds still take a full minute
+* Alerts: watch the barometric pressure: at least 2 nodes show a 2+ drop in under 5 minutes (?)
 
 ## What I don't know what to do about
 * cramming a bunch of these devices in a room will result in an unstable mesh, possibly due to interference
