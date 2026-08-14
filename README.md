@@ -380,6 +380,7 @@ PAUSE
 * when the Raspberry Pi Zero becomes unavailable for a while, the mesh collapses: restarting the ESP32 should be enough to for this (how about an HTTP request on /ping every few minutes?)
 * when a sensor starts returning incorrect readings, (maybe?) its node should recalibrate or self reset
 * batch the ESP32>RPI0 HTTP requests to better scale the number of nodes in the mesh w/r/t HTTP round-trip times
+* batch (also) the ESP8266>ESP32 messages in case the root node is unavailable
 * implement gradual backoff for the HTTP messages to the RPI0 in case the web server goes down, so that the mesh doesn't destabilize as a result of the increased delays and the ESP32 being busy (also see the first bullet point)
 * node health & mesh status sent to dedicated endpoints
 * estimate how much time the ESP32 spends on HTTP versus listening to the mesh, send it as part of the health payload
@@ -389,7 +390,6 @@ PAUSE
 
 ## Webserver
 * changes to the mesh topology are sent over HTTP (keeps the mesh alive) but currently not logged to the database
-* optimize writes on the Raspberry Pi Zero to reduce latency and storage wear (crontab service?)
 * improve default shell handling: aliases and other maintenance utilities when ssh'ing into the rpi etc.
 * find a better solution for the database overlap currently required (because of timezones and small DB files)
 * graphs data table: add MIN, MAX and current values but hidden by default, and radio buttons to switch (?), and how about STDDEV?
@@ -399,8 +399,9 @@ PAUSE
 * e-ink/e-paper screen
 
 ## Docker Swarm
-* Building the php-fpm image on Raspberry Pi Zero is possible but the first build took 1474s in my case, and subsequent builds still take a full minute
-* Alerts: watch the barometric pressure: at least 2 nodes show a 2+ drop in under 5 minutes (?)
+* optimize writes on the Raspberry Pi Zero to reduce latency and storage wear (crontab service?)
+* building the php-fpm image on Raspberry Pi Zero is possible but the first build took 1474s in my case, and subsequent builds still take a full minute
+* alerts: watch the barometric pressure: at least 2 nodes show a 2+ drop in under 5 minutes (?)
 
 ## What I don't know what to do about
 * cramming a bunch of these devices in a room will result in an unstable mesh, possibly due to interference
