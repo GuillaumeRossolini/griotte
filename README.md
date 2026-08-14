@@ -395,6 +395,7 @@ PAUSE
 * graphs data table: add MIN, MAX and current values but hidden by default, and radio buttons to switch (?), and how about STDDEV?
 
 ## Hardware
+* thermal insulation is really needed between ESP8266 and the sensor: in warm temperatures with low wind, the micro controller board can't self regulate and the readings are skewed by several °C
 * battery & solar recharge
 * e-ink/e-paper screen
 
