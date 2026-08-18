@@ -9,8 +9,7 @@ if [ ! -f "$buffer_filename" ]; then
 fi
 
 if [ -f "$buffer_filename" ]; then
-  cat "$buffer_filename" \
-    | sed "s/\t/,/g"
+  cat "$buffer_filename" | sed "s/\t/,/g"
 fi
 
 touch "$buffer_filename"
