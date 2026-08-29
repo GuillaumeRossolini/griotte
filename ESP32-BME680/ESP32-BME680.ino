@@ -203,7 +203,7 @@ void errLeds(char *errmsg)
 
 void checkRootNode(byte rootWasAvailable, byte rootIsAvailable, byte forceOutput) {
   if(mesh.isRoot()) {
-    if(TRUE == forceOutput) {
+    if(forceOutput) {
       mesh.sendBroadcast("Hello this is root"); // keep the mesh alive
     }
     return;
@@ -213,10 +213,10 @@ void checkRootNode(byte rootWasAvailable, byte rootIsAvailable, byte forceOutput
     return; // never mind
   }
 
-  if(FALSE == forceOutput) {
+  if(!forceOutput) {
     // never mind
   }
-  else if(FALSE == rootIsAvailable) {
+  else if(!rootIsAvailable) {
     Serial.printf("Root node #%u is _not_ reachable", MESH_ROOT_NODE);
     Serial.println();
   }
@@ -229,7 +229,7 @@ void checkRootNode(byte rootWasAvailable, byte rootIsAvailable, byte forceOutput
 
 #ifdef ESP8266
 void restartUnstableMesh(unsigned long iterationAt) {
-  if(TRUE == isRootReachable) {
+  if(isRootReachable) {
     lastMeshStabilityTimer = iterationAt;
   }
 
@@ -264,7 +264,7 @@ void sendReminders(unsigned long iterationAt) {
   );
 
 #ifdef HAS_STATION_CREDS
-  if(FALSE == hasWlanIP) {
+  if(!hasWlanIP) {
     Serial.print(", no WAN IP");
   }
   else {
@@ -306,7 +306,7 @@ void meshCallback_OnReceived(uint32_t fromNodeId, String &msg) {
   byte isSuccess = FALSE;
   for(int i=0; i<HTTP_NB_RETRIES; ++i) {
     isSuccess = sendHttp(receivedAt, fromNodeId, DATASTRUCT_BME680, msg);
-    if(isSuccess || FALSE == hasWlanIP) {
+    if(isSuccess || !hasWlanIP) {
       break;
     }
   }
@@ -427,7 +427,7 @@ byte sendHttp(unsigned long receivedAt, uint32_t fromNodeId, const char* dataTyp
   // }
 
   if(WL_CONNECTED != WiFi.status()) {
-    if(TRUE == hasWlanIP) {
+    if(hasWlanIP) {
       Serial.println("\tnot forwarded (lost WAN IP)");
       sprintf(outBuffer, "Message from #%u not forwarded (lost WAN IP)", fromNodeId);
       mesh.sendBroadcast(outBuffer);
