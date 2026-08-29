@@ -259,7 +259,7 @@ The basic command looks like this:
 ```sh
 git clone https://github.com/GuillaumeRossolini/griotte.git
 cd griotte
-docker build -t griotte:v2.3.9 .
+docker build -t griotte:v2.3.10 .
 docker stack deploy -c docker-compose.rpi0.yml --prune --detach=false griotte
 ```
 
@@ -268,8 +268,8 @@ There is only one custom image in this project, hence only one build operation, 
 ```
 pi@pi0-griot:~ $ docker service ls
 ID             NAME               MODE         REPLICAS   IMAGE                        PORTS
-mhxn1qnw8hym   griotte_graphs     replicated   1/1        griotte:v2.3.9
-2a4oztrk4g5h   griotte_incoming   replicated   1/1        griotte:v2.3.9
+mhxn1qnw8hym   griotte_graphs     replicated   1/1        griotte:v2.3.10
+2a4oztrk4g5h   griotte_incoming   replicated   1/1        griotte:v2.3.10
 z5dbsdua6rxu   griotte_proxy      replicated   2/2        nginx:1.31-alpine            *:80->80/tcp, *:8081->8081/tcp
 ```
 
