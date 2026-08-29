@@ -40,12 +40,10 @@ const char GRIOTTE_BUILD_ID[] = "v2.3.9";
 #include <ArduinoHttpClient.h>
 #endif
 
-const byte FALSE = 0;
-const byte TRUE = 1;
 static const unsigned int MAX_MSG_LEN = 256;
 static const unsigned int REMINDERS_THRESHOLD = 45000;
 char outBuffer[MAX_MSG_LEN];
-byte isRootReachable = FALSE;
+byte isRootReachable = false;
 unsigned long lastReminderTimer = 0;
 
 void errLeds();
@@ -91,10 +89,10 @@ const char DATASTRUCT_BME680[] = "bme680";
 unsigned char base64[MAX_MSG_LEN];
 char jsonBuffer[MAX_MSG_LEN];
 char payloadBuffer[MAX_MSG_LEN];
-byte foundWifiStation = FALSE;
+byte foundWifiStation = false;
 byte scanWifi(int);
 void wifiCallback_OnEvent(WiFiEvent_t);
-byte hasWlanIP = FALSE;
+byte hasWlanIP = false;
 WiFiClient wifi;
 byte sendHttp(unsigned long, uint32_t, const char*, String &);
 IPAddress wanIP(0,0,0,0);
@@ -209,14 +207,11 @@ void checkRootNode(byte rootWasAvailable, byte rootIsAvailable, byte forceOutput
     return;
   }
 
-  if(rootWasAvailable == rootIsAvailable) {
+  if(rootWasAvailable == rootIsAvailable && !forceOutput) {
     return; // never mind
   }
 
-  if(!forceOutput) {
-    // never mind
-  }
-  else if(!rootIsAvailable) {
+  if(!rootIsAvailable) {
     Serial.printf("Root node #%u is _not_ reachable", MESH_ROOT_NODE);
     Serial.println();
   }
@@ -275,7 +270,7 @@ void sendReminders(unsigned long iterationAt) {
   Serial.printf(" and %uo free HEAP", ESP.getFreeHeap());
   Serial.println();
 
-  checkRootNode(isRootReachable, isRootReachable, TRUE);
+  checkRootNode(isRootReachable, isRootReachable, true);
 
   Serial.printf("Current mesh is: %s", meshJson.c_str());
   Serial.println();
@@ -295,7 +290,7 @@ void meshCallback_OnReceived(uint32_t fromNodeId, String &msg) {
   byte wasRootReachable = isRootReachable;
 
   if(MESH_ROOT_NODE == fromNodeId) {
-    isRootReachable = TRUE;
+    isRootReachable = true;
   }
 
   if(currentNode != fromNodeId) {
@@ -303,7 +298,7 @@ void meshCallback_OnReceived(uint32_t fromNodeId, String &msg) {
   }
 
 #ifdef HAS_STATION_CREDS
-  byte isSuccess = FALSE;
+  byte isSuccess = false;
   for(int i=0; i<HTTP_NB_RETRIES; ++i) {
     isSuccess = sendHttp(receivedAt, fromNodeId, DATASTRUCT_BME680, msg);
     if(isSuccess || !hasWlanIP) {
@@ -325,7 +320,7 @@ void meshCallback_OnNewConnection(uint32_t withNodeId) {
   Serial.println();
 
   if(MESH_ROOT_NODE == withNodeId) {
-    isRootReachable = TRUE;
+    isRootReachable = true;
   }
 
   checkRootNode(wasRootReachable, isRootReachable, wasRootReachable != isRootReachable);
@@ -338,7 +333,7 @@ void meshCallback_OnDroppedConnection(uint32_t withNodeId) {
   Serial.println();
 
   if(MESH_ROOT_NODE == withNodeId) {
-    isRootReachable = TRUE;
+    isRootReachable = true;
   }
 
   checkRootNode(wasRootReachable, isRootReachable, wasRootReachable != isRootReachable);
@@ -361,7 +356,7 @@ void meshCallback_OnNodeDelayReceived(uint32_t withNodeId, int32_t delay) {
   Serial.println();
 
   if(MESH_ROOT_NODE == withNodeId) {
-    isRootReachable = TRUE;
+    isRootReachable = true;
   }
 
   checkRootNode(wasRootReachable, isRootReachable, wasRootReachable != isRootReachable);
@@ -423,7 +418,7 @@ byte sendHttp(unsigned long receivedAt, uint32_t fromNodeId, const char* dataTyp
 
   // if(MESH_ROOT_NODE != currentNode) {
   //   Serial.println("\tnot forwarded (not the root node)");
-  //   return TRUE;
+  //   return true;
   // }
 
   if(WL_CONNECTED != WiFi.status()) {
@@ -436,7 +431,7 @@ byte sendHttp(unsigned long receivedAt, uint32_t fromNodeId, const char* dataTyp
     Serial.println("\tnot forwarded (no WAN IP)");
     sprintf(outBuffer, "Message from #%u not forwarded (no WAN IP)", fromNodeId);
     mesh.sendBroadcast(outBuffer);
-    return TRUE;
+    return true;
   }
 
   digitalWrite(LED, LOW);
@@ -576,14 +571,14 @@ void wifiCallback_OnEvent(WiFiEvent_t event) {
     // case ARDUINO_EVENT_WIFI_STA_START:           Serial.println("WiFi STA: client started"); break;
     case ARDUINO_EVENT_WIFI_STA_STOP:
       Serial.println("WiFi STA: client stopped");
-      hasWlanIP = FALSE;
+      hasWlanIP = false;
       break;
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
       Serial.println("WiFi STA: connected to access point");
       break;
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
       Serial.println("WiFi STA: disconnected from access point");
-      hasWlanIP = FALSE;
+      hasWlanIP = false;
       // WiFi.config(0U, 0U, 0U, 0U); // clear static IP
       WiFi.begin(STATION_SSID, STATION_PASSWORD);
       break;
@@ -592,11 +587,11 @@ void wifiCallback_OnEvent(WiFiEvent_t event) {
       wanIP = mesh.getStationIP();
       Serial.printf("WiFi STA: Obtained WAN IP address %s (%d dBm) at %us", wanIP.toString().c_str(), WiFi.RSSI(), (long) millis()/1000);
       Serial.println();
-      hasWlanIP = TRUE;
+      hasWlanIP = true;
       break;
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
       Serial.println("WiFi STA: Lost WAN IP address");
-      hasWlanIP = FALSE;
+      hasWlanIP = false;
       break;
     // case ARDUINO_EVENT_WPS_ER_SUCCESS:          Serial.println("WiFi Protected Setup (WPS): succeeded in enrollee mode"); break;
     // case ARDUINO_EVENT_WPS_ER_FAILED:           Serial.println("WiFi Protected Setup (WPS): failed in enrollee mode"); break;
