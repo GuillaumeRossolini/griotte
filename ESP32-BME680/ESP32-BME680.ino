@@ -136,7 +136,7 @@ void setup(void)
 
   Serial.println();
   Serial.println("Hi!");
-  Serial.printf("This is build %s", GRIOTTE_BUILD_ID);
+  Serial.printf("This is GR IoT build %s", GRIOTTE_BUILD_ID);
   Serial.println();
 
   // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE | DEBUG | STARTUP
@@ -209,11 +209,14 @@ void checkRootNode(byte rootWasAvailable, byte rootIsAvailable, byte forceOutput
     return;
   }
 
-  if(rootWasAvailable == rootIsAvailable && FALSE == forceOutput) {
+  if(rootWasAvailable == rootIsAvailable) {
     return; // never mind
   }
 
-  if(FALSE == rootIsAvailable) {
+  if(FALSE == forceOutput) {
+    // never mind
+  }
+  else if(FALSE == rootIsAvailable) {
     Serial.printf("Root node #%u is _not_ reachable", MESH_ROOT_NODE);
     Serial.println();
   }
@@ -289,14 +292,14 @@ void sendReminders(unsigned long iterationAt) {
 
 void meshCallback_OnReceived(uint32_t fromNodeId, String &msg) {
   const unsigned long receivedAt = millis();
-  byte isFromRoot = (MESH_ROOT_NODE == fromNodeId);
+  byte wasRootReachable = isRootReachable;
 
-  if(currentNode != fromNodeId) {
-    checkRootNode(isRootReachable, isFromRoot, TRUE);
+  if(MESH_ROOT_NODE == fromNodeId) {
+    isRootReachable = TRUE;
   }
 
-  if(isFromRoot) {
-    isRootReachable = TRUE;
+  if(currentNode != fromNodeId) {
+    checkRootNode(wasRootReachable, isRootReachable, wasRootReachable != isRootReachable);
   }
 
 #ifdef HAS_STATION_CREDS
@@ -316,27 +319,29 @@ void meshCallback_OnReceived(uint32_t fromNodeId, String &msg) {
 }
 
 void meshCallback_OnNewConnection(uint32_t withNodeId) {
-  byte isFromRoot = (MESH_ROOT_NODE == withNodeId);
+  byte wasRootReachable = isRootReachable;
 
   Serial.printf("New mesh connection with #%u", withNodeId);
   Serial.println();
 
-  checkRootNode(isRootReachable, isFromRoot, TRUE);
-  if(isFromRoot) {
+  if(MESH_ROOT_NODE == withNodeId) {
     isRootReachable = TRUE;
   }
+
+  checkRootNode(wasRootReachable, isRootReachable, wasRootReachable != isRootReachable);
 }
 
 void meshCallback_OnDroppedConnection(uint32_t withNodeId) {
-  const byte isFromRoot = (MESH_ROOT_NODE == withNodeId);
+  byte wasRootReachable = isRootReachable;
 
   Serial.printf("Dropped mesh connection from #%u", withNodeId);
   Serial.println();
 
-  checkRootNode(isRootReachable, isFromRoot, TRUE);
-  if(isFromRoot) {
-    isRootReachable = FALSE;
+  if(MESH_ROOT_NODE == withNodeId) {
+    isRootReachable = TRUE;
   }
+
+  checkRootNode(wasRootReachable, isRootReachable, wasRootReachable != isRootReachable);
 }
 
 void meshCallback_OnChangedConnections() {
@@ -350,12 +355,16 @@ void meshCallback_OnNodeTimeAdjusted(int32_t offset) {
 }
 
 void meshCallback_OnNodeDelayReceived(uint32_t withNodeId, int32_t delay) {
+  byte wasRootReachable = isRootReachable;
+
+  Serial.printf("OnNodeDelayReceived from #%u at %u", withNodeId, delay);
+  Serial.println();
+
   if(MESH_ROOT_NODE == withNodeId) {
     isRootReachable = TRUE;
   }
 
-  Serial.printf("OnNodeDelayReceived from #%u at %u", withNodeId, delay);
-  Serial.println();
+  checkRootNode(wasRootReachable, isRootReachable, wasRootReachable != isRootReachable);
 }
 
 
