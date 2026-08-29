@@ -46,6 +46,8 @@ char outBuffer[MAX_MSG_LEN];
 byte isRootReachable = false;
 unsigned long lastReminderTimer = 0;
 
+const char GRIOTTE_MSG_CHECKIN_TPL[] = "Checking in with Build/%s";
+
 void errLeds();
 void setupNetwork();
 void sendReminders(unsigned long);
@@ -94,8 +96,11 @@ byte scanWifi(int);
 void wifiCallback_OnEvent(WiFiEvent_t);
 byte hasWlanIP = false;
 WiFiClient wifi;
-byte sendHttp(unsigned long, uint32_t, const char*, String &);
 IPAddress wanIP(0,0,0,0);
+#endif
+
+#ifdef HAS_HTTP_CREDS
+byte sendHttp(unsigned long, uint32_t, const char*, String &);
 static const unsigned int HTTP_RESPONSE_TIMEOUT = 350;
 static const unsigned int HTTP_WAIT_FOR_DATA_DELAY = 50;
 static const unsigned int HTTP_NB_RETRIES = 2;
@@ -170,7 +175,7 @@ void loop(void)
   mesh.update();
 
 #ifdef ESP8266
-  checkSensorData(timeTrigger);
+  checkSensorData(timeTrigger); // might reboot if sensor in error
   restartUnstableMesh(timeTrigger);
 #endif
 
@@ -207,17 +212,21 @@ void checkRootNode(byte rootWasAvailable, byte rootIsAvailable, byte forceOutput
     return;
   }
 
-  if(rootWasAvailable == rootIsAvailable && !forceOutput) {
-    return; // never mind
+  if(rootWasAvailable == rootIsAvailable || !forceOutput) {
+    // never mind
   }
-
-  if(!rootIsAvailable) {
+  else if(!rootIsAvailable) {
     Serial.printf("Root node #%u is _not_ reachable", MESH_ROOT_NODE);
     Serial.println();
   }
   else {
     Serial.printf("Root node #%u is reachable", MESH_ROOT_NODE);
     Serial.println();
+  }
+
+  if(rootIsAvailable && !rootWasAvailable) {
+    snprintf(outBuffer, sizeof(outBuffer), GRIOTTE_MSG_CHECKIN_TPL, GRIOTTE_BUILD_ID);
+    mesh.sendSingle(MESH_ROOT_NODE, outBuffer);
   }
 }
 
@@ -275,7 +284,7 @@ void sendReminders(unsigned long iterationAt) {
   Serial.printf("Current mesh is: %s", meshJson.c_str());
   Serial.println();
 
-#ifdef HAS_STATION_CREDS
+#ifdef HAS_HTTP_CREDS
   sendHttp(iterationAt, currentNode, DATASTRUCT_TYPOLOGY, meshJson); // keep the wifi alive
 #endif
 }
@@ -297,7 +306,18 @@ void meshCallback_OnReceived(uint32_t fromNodeId, String &msg) {
     checkRootNode(wasRootReachable, isRootReachable, wasRootReachable != isRootReachable);
   }
 
-#ifdef HAS_STATION_CREDS
+#ifdef ESP32
+  if(NULL != strstr(msg.c_str(), GRIOTTE_MSG_CHECKIN_TPL)) {
+    Serial.printf("At %us: check-in from #%u: \t%s", (int) receivedAt/1000, fromNodeId, msg.c_str());
+    Serial.println();
+    // @todo use this block to keep a map of metadata per node: build version, IP address etc
+    return;
+  }
+
+  Serial.printf("At %us: %s message from #%u: \t%s", (int) receivedAt/1000, DATASTRUCT_BME680, fromNodeId, msg.c_str());
+  Serial.println();
+
+#ifdef HAS_HTTP_CREDS
   byte isSuccess = false;
   for(int i=0; i<HTTP_NB_RETRIES; ++i) {
     isSuccess = sendHttp(receivedAt, fromNodeId, DATASTRUCT_BME680, msg);
@@ -305,12 +325,10 @@ void meshCallback_OnReceived(uint32_t fromNodeId, String &msg) {
       break;
     }
   }
-#endif
+#endif // HAS_HTTP_CREDS
 
-#ifdef ESP32
-  Serial.printf("At %us: %s message %s from #%u: \t%s", (int) receivedAt/1000, DATASTRUCT_BME680, fromNodeId, msg.c_str());
-  Serial.println();
-#endif
+#endif // ESP32
+
 }
 
 void meshCallback_OnNewConnection(uint32_t withNodeId) {
@@ -407,14 +425,14 @@ void setupNetwork() {
 }
 
 
-#ifdef HAS_STATION_CREDS
+#ifdef HAS_HTTP_CREDS
 byte sendHttp(unsigned long receivedAt, uint32_t fromNodeId, const char* dataType, String &msg) {
   const unsigned long startedAt = millis();
 
   // Serial.printf("HTTP endpoint is %s on port %u", HTTP_ADDR, HTTP_PORT);
   // Serial.println();
 
-  Serial.printf("At %us: %s message %s from #%u: \t%s", (int) receivedAt/1000, DATASTRUCT_BME680, fromNodeId, msg.c_str());
+  Serial.printf("Forwarding %s message from #%u: \t%s", dataType, fromNodeId, msg.c_str());
 
   // if(MESH_ROOT_NODE != currentNode) {
   //   Serial.println("\tnot forwarded (not the root node)");
@@ -428,6 +446,7 @@ byte sendHttp(unsigned long receivedAt, uint32_t fromNodeId, const char* dataTyp
       mesh.sendBroadcast(outBuffer);
       ESP.restart();
     }
+
     Serial.println("\tnot forwarded (no WAN IP)");
     sprintf(outBuffer, "Message from #%u not forwarded (no WAN IP)", fromNodeId);
     mesh.sendBroadcast(outBuffer);
@@ -505,7 +524,9 @@ byte sendHttp(unsigned long receivedAt, uint32_t fromNodeId, const char* dataTyp
   digitalWrite(LED, HIGH);
   return httpSuccess;
 }
+#endif
 
+#ifdef HAS_STATION_CREDS
 byte scanWifi(int desiredChannel) {
   const unsigned long receivedAt = millis();
   unsigned int nbNetworks;
