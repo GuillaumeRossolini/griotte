@@ -458,7 +458,8 @@ byte sendHttp(unsigned long receivedAt, uint32_t fromNodeId, const char* dataTyp
 
   snprintf(userAgent, sizeof(userAgent), "%s/%u", HTTP_USERAGENT, fromNodeId);
   http.sendHeader("User-Agent", userAgent);
-  snprintf(userAgent, sizeof(userAgent), "Build/%s", GRIOTTE_BUILD_ID);
+
+  snprintf(userAgent, sizeof(userAgent), "Bridge/%s", GRIOTTE_BUILD_ID);
   http.sendHeader("User-Agent", userAgent);
 
   http.sendHeader("Connection", "keep-alive");
