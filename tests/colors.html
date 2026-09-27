@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="utf-8">
+    <title>Griotte metrics for 2026-08-10</title>
+</head>
+<body>
+
+<style type="text/css">
+  h1 {
+    text-align: center;
+  }
+
+  canvas {
+    margin-top: 50px;
+  }
+
+  table {
+    border: 1px solid black;
+    margin-top: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 20px;
+  }
+
+  tfoot tr td {
+    font-style: italic;
+  }
+
+  tbody tr td {
+    border: 1px dotted black;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  tbody tr td[role="nb"] {
+    text-align: right;
+  }
+
+  tbody tr td[palette] {
+    text-shadow: 0 0 1px white;
+    font-weight: bold;
+  }
+
+  /* tbody tr td[palette="purple"] {
+    background-color: rgb(168 85 247 / var(--alpha));
+  } */
+
+  tbody tr td[palette="blue"] {
+    background-color: rgb(59 130 246 / var(--alpha));
+  }
+
+  tbody tr td[palette="red"] {
+    background-color: rgb(239 68 68 / var(--alpha));
+  }
+
+  tbody tr td[palette="green"] {
+    /* background-color: rgb(20 184 166 / var(--alpha)); */
+    background-color: rgb(168 85 247 / var(--alpha));
+  }
+
+  tbody tr td[palette="yellow"] {
+    background-color: rgb(234 179 8 / var(--alpha));
+  }
+
+</style>
+
+<table>
+  <thead>
+    <tr>
+      <th>Node</th>
+      <th>Floor</th>
+            <th>Earliest</th>
+      <th>Latest</th>
+      <th>Readings</th>
+      <th>Free heap</th>
+      <th>Reboots</th>
+      <th>Uptime</th>
+      <th>AVG Atmo</th>
+      <th>AVG Hum</th>
+      <th>AVG Temp</th>
+      <th>AVG Quality</th>
+    </tr>
+  </thead>
+
+  <tfoot>
+    <tr>
+      <td role="nb">9 nodes</td>
+      <td></td>
+            <td></td>
+      <td></td>
+      <td role="nb">6219 total</td>
+      <td></td>
+      <td role="nb">2 total</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+  </tfoot>
+
+  <tbody>
+
+      <tr>
+        <td><acronym title="Node #317810945">archives</acronym></td>
+        <td role="nb">2</td>
+                <td role="nb">00:00:57</td>
+        <td role="nb">15:53:40</td>
+        <td role="nb">883</td>
+        <td role="nb">24 Ko</td>
+        <td role="nb">0</td>
+        <td role="nb">27 h</td>
+        <td role="nb">1010 hPa</td>
+        <td role="nb" palette="blue" style="--alpha: 29%">29 %</td>
+        <td role="nb" palette="red" style="--alpha: 68%">34 °C</td>
+        <td role="nb" palette="green" style="--alpha: 91%">91 %</td>
+      </tr>
+
+      <tr>
+        <td><acronym title="Node #3385105714">attic</acronym></td>
+        <td role="nb">2</td>
+                <td role="nb">00:00:58</td>
+        <td role="nb">15:53:34</td>
+        <td role="nb">860</td>
+        <td role="nb">16 Ko</td>
+        <td role="nb">1</td>
+        <td role="nb">23 h</td>
+        <td role="nb">1010 hPa</td>
+        <td role="nb" palette="blue" style="--alpha: 31%">31 %</td>
+        <td role="nb" palette="red" style="--alpha: 62%">31 °C</td>
+        <td role="nb" palette="green" style="--alpha: 19%">19 %</td>
+      </tr>
+
+      <tr>
+        <td><acronym title="Node #3385445268">office</acronym></td>
+        <td role="nb">2</td>
+                <td role="nb">00:00:57</td>
+        <td role="nb">15:54:00</td>
+        <td role="nb">866</td>
+        <td role="nb">22 Ko</td>
+        <td role="nb">0</td>
+        <td role="nb">27 h</td>
+        <td role="nb">1010 hPa</td>
+        <td role="nb" palette="blue" style="--alpha: 35%">35 %</td>
+        <td role="nb" palette="red" style="--alpha: 60%">30 °C</td>
+        <td role="nb" palette="green" style="--alpha: 75%">75 %</td>
+      </tr>
+
+      <tr>
+        <td><acronym title="Node #3385445319">playroom</acronym></td>
+        <td role="nb">2</td>
+                <td role="nb">00:00:54</td>
+        <td role="nb">12:10:51</td>
+        <td role="nb">737</td>
+        <td role="nb">28 Ko</td>
+        <td role="nb">1</td>
+        <td role="nb">22 h</td>
+        <td role="nb">1011 hPa</td>
+        <td role="nb" palette="blue" style="--alpha: 35%">35 %</td>
+        <td role="nb" palette="red" style="--alpha: 60%">30 °C</td>
+        <td role="nb" palette="green" style="--alpha: 50%">50 %</td>
+      </tr>
+
+      <tr>
+        <td><acronym title="Node #1547794758">bedroom</acronym></td>
+        <td role="nb">1</td>
+                <td role="nb">00:00:36</td>
+        <td role="nb">12:10:51</td>
+        <td role="nb">721</td>
+        <td role="nb">28 Ko</td>
+        <td role="nb">0</td>
+        <td role="nb">26 h</td>
+        <td role="nb">1011 hPa</td>
+        <td role="nb" palette="blue" style="--alpha: 41%">41 %</td>
+        <td role="nb" palette="red" style="--alpha: 55%">27 °C</td>
+        <td role="nb" palette="green" style="--alpha: 86%">86 %</td>
+      </tr>
+
+      <tr>
+        <td><acronym title="Node #694510667">guest room</acronym></td>
+        <td role="nb">1</td>
+                <td role="nb">00:00:57</td>
+        <td role="nb">15:54:33</td>
+        <td role="nb">811</td>
+        <td role="nb">26 Ko</td>
+        <td role="nb">0</td>
+        <td role="nb">27 h</td>
+        <td role="nb">1011 hPa</td>
+        <td role="nb" palette="blue" style="--alpha: 42%">42 %</td>
+        <td role="nb" palette="red" style="--alpha: 54%">27 °C</td>
+        <td role="nb" palette="green" style="--alpha: 69%">69 %</td>
+      </tr>
+
+      <tr>
+        <td><acronym title="Node #3764979380">heater</acronym></td>
+        <td role="nb">0</td>
+                <td role="nb">00:00:19</td>
+        <td role="nb">12:10:51</td>
+        <td role="nb">730</td>
+        <td role="nb">28 Ko</td>
+        <td role="nb">0</td>
+        <td role="nb">43 h</td>
+        <td role="nb">1011 hPa</td>
+        <td role="nb" palette="blue" style="--alpha: 37%">37 %</td>
+        <td role="nb" palette="red" style="--alpha: 63%">31 °C</td>
+        <td role="nb" palette="green" style="--alpha: 94%">94 %</td>
+      </tr>
+
+      <tr>
+        <td><acronym title="Node #695062617">salon</acronym></td>
+        <td role="nb">0</td>
+                <td role="nb">08:20:10</td>
+        <td role="nb">15:53:39</td>
+        <td role="nb">380</td>
+        <td role="nb">24 Ko</td>
+        <td role="nb">0</td>
+        <td role="nb">7 h</td>
+        <td role="nb">1011 hPa</td>
+        <td role="nb" palette="blue" style="--alpha: 35%">35 %</td>
+        <td role="nb" palette="red" style="--alpha: 62%">31 °C</td>
+        <td role="nb" palette="green" style="--alpha: 89%">89 %</td>
+      </tr>
+
+      <tr>
+        <td><acronym title="Node #1364776260">cellar</acronym></td>
+        <td role="nb">-1</td>
+                <td role="nb">08:19:41</td>
+        <td role="nb">12:10:50</td>
+        <td role="nb">231</td>
+        <td role="nb">31 Ko</td>
+        <td role="nb">0</td>
+        <td role="nb">3 h</td>
+        <td role="nb">1014 hPa</td>
+        <td role="nb" palette="blue" style="--alpha: 40%">40 %</td>
+        <td role="nb" palette="red" style="--alpha: 57%">29 °C</td>
+        <td role="nb" palette="green" style="--alpha: 92%">92 %</td>
+      </tr>
+      </tbody>
+
+</table>
+
+    </body>
+</html>
