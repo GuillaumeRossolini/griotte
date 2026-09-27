@@ -314,7 +314,7 @@ But with this method:
 * buffering data for later commit also takes 2ms, it's a plaintext append operation;
 * committing data from text file to SQLite for the last 5 minutes (that's about 50 readings in my case) takes less than 1s.
 
-I can also observe easily what is happening with a few easy commands:
+I can also observe easily what is happening with a few quick commands:
 * `watch "cat run/buffer.csv | expand"`
 * `watch wc -l run/buffer.csv`
 * `watch ls -alh db/readings.sq3 run/* db/daily/*/*/$(date +%Y-%m-%d)*`
