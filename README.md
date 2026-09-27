@@ -147,7 +147,7 @@ In case I was mistaken with my short list, here are all the dependencies that I 
 |AsyncTCP|v3.5.0|ESP32Async|https://github.com/ESP32Async/AsyncTCP|
 |BME68x Sensor library|v1.3.40408|Bosch Sensortech|https://github.com/BoschSensortec/Bosch-BME68x-Library|
 |BSEC Softare Library|v1.6.1480|Bosch Sensortech|https://github.com/BoschSensortec/BSEC-Arduino-library|
-|ESP ASync WebServer|v3.12.0|ESP32Async|https://github.com/ESP32Async/ESPAsyncWebServer|
+|ESP ASync WebServer|v3.12.1|ESP32Async|https://github.com/ESP32Async/ESPAsyncWebServer|
 |ESPAsyncTCP|v1.2.4|dvarrel|https://github.com/dvarrel/ESPAsyncTCP|
 |HttpClient|v2.2.0|Adrian McEwen|https://github.com/amcewen/HttpClient|
 |Painless Mesh|v1.5.7|Coopdis, Scotty Franzyshen, Edwin van Leeuwen, Germán Martín, Maximillian Schwartz, Doanh Doanh|https://gitlab.com/painlessMesh/painlessMesh|
